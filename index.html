@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="tr" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,9 +8,12 @@
 </head>
 <body>
   <header class="header">
-    <div class="header-title">
-      <h1>AES-128 Simetrik Blok Şifreleme Laboratuvarı</h1>
-      <span class="tag">FIPS-197 Standart Uygulaması</span>
+    <div class="header-top">
+      <div class="header-title">
+        <h1>AES-128 Simetrik Blok Şifreleme Laboratuvarı</h1>
+        <span class="tag">FIPS-197 Standart Uygulaması</span>
+      </div>
+      <button type="button" id="theme-btn" class="theme-btn">Açık Tema (Projeksiyon / Tahta)</button>
     </div>
 
     <div class="control-grid">
@@ -36,10 +39,8 @@
     </div>
   </header>
 
-  <!-- Anlık Fark ve Özet Şeridi -->
   <section class="diff-banner" id="diff-banner"></section>
 
-  <!-- Ana Navigasyon -->
   <nav class="nav-bar">
     <div class="tabs">
       <button type="button" class="tab-btn active" data-tab="prep">Adım 0: Blok Hazırlama ve Fark Analizi</button>
@@ -58,7 +59,7 @@
   </nav>
 
   <main class="container">
-    <!-- SEKME 1: ADIM 0 HAZIRLIK VE AÇIKLAYICI FARK -->
+    <!-- SEKME 1: ADIM 0 HAZIRLIK -->
     <section id="tab-prep" class="tab-panel active">
       <div class="guide-box">
         <strong>Sınıfa Anlatım Özeti:</strong> Bilgisayar harfleri ASCII tablosundaki sayılar olarak tutar (A=65=0x41). AES her zaman 16 baytlık (128 bit) bloklarla çalışır. "ARABA" 5 harf olduğu için kalan 11 bayt 00 ile doldurulur ve 4x4 durum (state) tablosuna <strong>yukarıdan aşağıya (sütun sütun)</strong> yerleştirilir.

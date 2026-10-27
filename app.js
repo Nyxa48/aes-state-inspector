@@ -234,13 +234,13 @@ function renderPrepTab() {
   let rows = "";
   for (let i = 0; i < 16; i++) {
     const b1 = APP.pt1[i], b2 = APP.pt2[i];
-    const ch1 = (b1 >= 32 && b1 <= 126) ? String.fromCharCode(b1) : "(Dolgu 00)";
-    const ch2 = (b2 >= 32 && b2 <= 126) ? String.fromCharCode(b2) : "(Dolgu 00)";
+    const ch1 = (b1 >= 32 && b1 <= 126) ? String.fromCharCode(b1) : "(Dolgu)";
+    const ch2 = (b2 >= 32 && b2 <= 126) ? String.fromCharCode(b2) : "(Dolgu)";
     const isDiff = b1 !== b2;
-    rows += `<tr style="${isDiff ? "background:#fee2e2;font-weight:700;" : ""}">
+    rows += `<tr class="${isDiff ? "diff-row" : ""}">
       <td>Bayt ${i + 1} (s[${i % 4},${Math.floor(i / 4)}])</td>
-      <td>${ch1} &rarr; ${ b1 } &rarr; <strong>${hex2(b1)}</strong> (${bin8(b1)})</td>
-      <td>${ch2} &rarr; ${ b2 } &rarr; <strong>${hex2(b2)}</strong> (${bin8(b2)})</td>
+      <td>${ch1} &rarr; ${b1} &rarr; <strong>${hex2(b1)}</strong> (${bin8(b1)})</td>
+      <td>${ch2} &rarr; ${b2} &rarr; <strong>${hex2(b2)}</strong> (${bin8(b2)})</td>
       <td>${isDiff ? `${countBitDiff([b1], [b2]).bits} bit farklı` : "Aynı"}</td>
     </tr>`;
   }
@@ -280,7 +280,7 @@ function renderPrepTab() {
     </div>
     <div class="card">
       <div class="card-head"><h2>2. 4x4 Durum (State) Tablosu — Sütun Sütun Dizilim</h2></div>
-      <p style="font-size:12px;color:#475569;margin-bottom:8px;">Dikkat: 1, 2, 3 ve 4. baytlar ilk satıra değil, ilk sütuna yukarıdan aşağıya yazılır.</p>
+      <p class="muted-note">Dikkat: 1, 2, 3 ve 4. baytlar ilk satıra değil, ilk sütuna yukarıdan aşağıya yazılır.</p>
       <table class="state-table" style="margin-bottom:16px;"><tbody>${stateCells}</tbody></table>
       <div class="card-head"><h2>3. Tur Bazlı Çığ Etkisi (Farkın Yayılma Hızı)</h2></div>
       <table class="data-table">
@@ -553,6 +553,19 @@ function renderCurrentTab() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  const themeBtn = document.getElementById("theme-btn");
+  const savedTheme = localStorage.getItem("aes_theme") || "dark";
+  document.documentElement.setAttribute("data-theme", savedTheme);
+  themeBtn.textContent = savedTheme === "dark" ? "Açık Tema (Projeksiyon / Tahta)" : "Koyu Tema (PC Ekranı)";
+
+  themeBtn.addEventListener("click", () => {
+    const cur = document.documentElement.getAttribute("data-theme");
+    const next = cur === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    localStorage.setItem("aes_theme", next);
+    themeBtn.textContent = next === "dark" ? "Açık Tema (Projeksiyon / Tahta)" : "Koyu Tema (PC Ekranı)";
+  });
+
   ["pt1-input", "pt2-input", "key-input"].forEach(id => {
     document.getElementById(id).addEventListener("input", updateAll);
   });
