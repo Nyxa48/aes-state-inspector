@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AES-128 İnteraktif Kriptoloji ve Tahta Çözüm Aracı</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="header">
+    <div class="header-title">
+      <h1>AES-128 Simetrik Blok Şifreleme Laboratuvarı</h1>
+      <span class="tag">FIPS-197 Standart Uygulaması</span>
+    </div>
+
+    <div class="control-grid">
+      <div class="field">
+        <label for="pt1-input">Ana Düz Metin (ASCII / 32 Hex)</label>
+        <input type="text" id="pt1-input" value="ARABA" spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="pt2-input">Karşılaştırma Metni (Çığ Etkisi İçin)</label>
+        <input type="text" id="pt2-input" value="ARABB" spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="pad-select">Blok Dolgusu (16 Bayta Tamamlama)</label>
+        <select id="pad-select">
+          <option value="zero" selected>00 ile Doldur (Sunum Örneği)</option>
+          <option value="pkcs7">PKCS#7 Standart Dolgu</option>
+        </select>
+      </div>
+      <div class="field key-field">
+        <label for="key-input">128-Bit Gizli Anahtar (16 Bayt Hex)</label>
+        <input type="text" id="key-input" value="2B7E151628AED2A6ABF7158809CF4F3C" spellcheck="false">
+      </div>
+    </div>
+  </header>
+
+  <!-- Anlık Fark ve Özet Şeridi -->
+  <section class="diff-banner" id="diff-banner"></section>
+
+  <!-- Ana Navigasyon -->
+  <nav class="nav-bar">
+    <div class="tabs">
+      <button type="button" class="tab-btn active" data-tab="prep">Adım 0: Blok Hazırlama ve Fark Analizi</button>
+      <button type="button" class="tab-btn" data-tab="enc">Şifreleme Turları (Tur 0 - 10)</button>
+      <button type="button" class="tab-btn" data-tab="key">Anahtar Türetme (Key Schedule)</button>
+      <button type="button" class="tab-btn" data-tab="dec">Geri Açma (Deşifreleme)</button>
+    </div>
+
+    <div class="round-controls" id="round-controls">
+      <label class="diff-toggle">
+        <input type="checkbox" id="show-diff-chk" checked>
+        <span>Karşılaştırma Metni (<strong id="diff-label-name">ARABB</strong>) Farklarını Matriste İşaretle</span>
+      </label>
+      <div class="round-buttons" id="round-buttons"></div>
+    </div>
+  </nav>
+
+  <main class="container">
+    <!-- SEKME 1: ADIM 0 HAZIRLIK VE AÇIKLAYICI FARK -->
+    <section id="tab-prep" class="tab-panel active">
+      <div class="guide-box">
+        <strong>Sınıfa Anlatım Özeti:</strong> Bilgisayar harfleri ASCII tablosundaki sayılar olarak tutar (A=65=0x41). AES her zaman 16 baytlık (128 bit) bloklarla çalışır. "ARABA" 5 harf olduğu için kalan 11 bayt 00 ile doldurulur ve 4x4 durum (state) tablosuna <strong>yukarıdan aşağıya (sütun sütun)</strong> yerleştirilir.
+      </div>
+      <div class="two-col" id="prep-content"></div>
+    </section>
+
+    <!-- SEKME 2 & 4: ŞİFRELEME VE DEŞİFRELEME TURLARI -->
+    <section id="tab-rounds" class="tab-panel">
+      <div class="guide-box" id="round-guide"></div>
+      <div class="matrices-grid" id="matrices-grid"></div>
+
+      <div class="bottom-split">
+        <div class="card">
+          <div class="card-head">
+            <h2 id="insp-title">Tahta Çözüm Denetçisi (Hücre Matematiği)</h2>
+            <span class="coord-badge" id="insp-coord"></span>
+          </div>
+          <div id="insp-content"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h2 id="sbox-title">S-Box / InvS-Box Arama Tablosu (16x16)</h2>
+            <span class="muted-note">İlk hane satır, ikinci hane sütun</span>
+          </div>
+          <div id="sbox-grid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SEKME 3: ANAHTAR GENİŞLETME -->
+    <section id="tab-key" class="tab-panel">
+      <div class="guide-box">
+        <strong>Anahtar Türetme (Key Expansion) Mantığı:</strong> Elimizdeki tek 16 baytlık anahtardan 11 tur için (Başlangıç + 10 Tur) toplam 44 adet 4 baytlık sütun (W[0]..W[43]) üretilir. 4'ün katı olan sütunlarda (W[4], W[8]...) bir önceki sütun yukarı kaydırılır (RotWord), S-Box'tan geçirilir (SubWord) ve tur sabiti (Rcon) ile XOR'lanır.
+      </div>
+      <div class="bottom-split">
+        <div class="card">
+          <div class="card-head">
+            <h2>11 Tur Anahtarı (Türetme hesabını görmek için W[i] sütununa tıklayın)</h2>
+          </div>
+          <div id="key-schedule-table"></div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h2 id="key-insp-title">Seçili Kelime (Word) Hesabı</h2>
+          </div>
+          <div id="key-insp-content"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
