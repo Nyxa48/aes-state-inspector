@@ -3,109 +3,160 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AES-128 İnteraktif Kriptoloji ve Tahta Çözüm Aracı</title>
+  <title>AES-128 İnteraktif Kriptoloji Laboratuvarı</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <a href="#main-content" class="skip-link" id="skip-link">İçeriğe atla</a>
+
   <header class="header">
     <div class="header-top">
       <div class="header-title">
-        <h1>AES-128 Simetrik Blok Şifreleme Laboratuvarı</h1>
-        <span class="tag">FIPS-197 Standart Uygulaması</span>
+        <h1 id="app-title">AES-128 Simetrik Blok Şifreleme Laboratuvarı</h1>
+        <span class="tag">FIPS-197</span>
       </div>
-      <button type="button" id="theme-btn" class="theme-btn">Açık Tema (Projeksiyon / Tahta)</button>
+      <div class="header-actions">
+        <div class="lang-switch" role="group" aria-label="Dil / Language">
+          <button type="button" class="lang-btn active" data-lang="tr" aria-pressed="true">TR</button>
+          <button type="button" class="lang-btn" data-lang="en" aria-pressed="false">EN</button>
+        </div>
+        <a href="sunum.html" id="slides-link" class="header-link">Sunum Slaytları</a>
+        <button type="button" id="present-btn" class="header-btn" aria-pressed="false">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
+          <span id="present-btn-label">Sunum Modu</span>
+        </button>
+        <button type="button" id="theme-btn" class="header-btn" aria-pressed="false">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+          <span id="theme-btn-label">Açık Tema</span>
+        </button>
+      </div>
     </div>
 
     <div class="control-grid">
       <div class="field">
-        <label for="pt1-input">Ana Düz Metin (ASCII / 32 Hex)</label>
-        <input type="text" id="pt1-input" value="ARABA" spellcheck="false">
+        <label for="pt1-input" id="lbl-pt1">Ana düz metin (ASCII veya 32 hex)</label>
+        <input type="text" id="pt1-input" value="ARABA" spellcheck="false" aria-describedby="pt1-hint">
+        <span class="field-hint" id="pt1-hint" aria-live="polite"></span>
       </div>
       <div class="field">
-        <label for="pt2-input">Karşılaştırma Metni (Çığ Etkisi İçin)</label>
-        <input type="text" id="pt2-input" value="ARABB" spellcheck="false">
+        <label for="pt2-input" id="lbl-pt2">Karşılaştırma metni (Çığ etkisi)</label>
+        <input type="text" id="pt2-input" value="ARABB" spellcheck="false" aria-describedby="pt2-hint">
+        <span class="field-hint" id="pt2-hint" aria-live="polite"></span>
       </div>
       <div class="field">
-        <label for="pad-select">Blok Dolgusu (16 Bayta Tamamlama)</label>
-        <select id="pad-select">
-          <option value="zero" selected>00 ile Doldur (Sunum Örneği)</option>
-          <option value="pkcs7">PKCS#7 Standart Dolgu</option>
+        <label for="pad-select" id="lbl-pad">Blok dolgusu (16 bayt)</label>
+        <select id="pad-select" aria-describedby="pad-hint">
+          <option value="zero" id="opt-pad-zero" selected>Sıfır dolgusu (0x00)</option>
+          <option value="pkcs7" id="opt-pad-pkcs7">PKCS#7 standart dolgusu</option>
         </select>
+        <span class="field-hint" id="pad-hint"></span>
       </div>
       <div class="field key-field">
-        <label for="key-input">128-Bit Gizli Anahtar (16 Bayt Hex)</label>
-        <input type="text" id="key-input" value="2B7E151628AED2A6ABF7158809CF4F3C" spellcheck="false">
+        <label for="key-input" id="lbl-key">128-bit gizli anahtar (32 hex)</label>
+        <input type="text" id="key-input" value="2B7E151628AED2A6ABF7158809CF4F3C" spellcheck="false" aria-describedby="key-hint">
+        <span class="field-hint" id="key-hint" aria-live="polite"></span>
       </div>
     </div>
   </header>
 
-  <section class="diff-banner" id="diff-banner"></section>
+  <section class="diff-banner" id="diff-banner" aria-live="polite"></section>
 
-  <nav class="nav-bar">
-    <div class="tabs">
-      <button type="button" class="tab-btn active" data-tab="prep">Adım 0: Blok Hazırlama ve Fark Analizi</button>
-      <button type="button" class="tab-btn" data-tab="enc">Şifreleme Turları (Tur 0 - 10)</button>
-      <button type="button" class="tab-btn" data-tab="key">Anahtar Türetme (Key Schedule)</button>
-      <button type="button" class="tab-btn" data-tab="dec">Geri Açma (Deşifreleme)</button>
+  <nav class="nav-bar" aria-label="Çalışma sekmeleri ve tur seçimi" id="main-nav">
+    <div class="nav-top-row">
+      <div class="tabs" role="tablist" id="main-tablist">
+        <button type="button" class="tab-btn active" id="tab-btn-prep" data-tab="prep" role="tab" aria-selected="true" aria-controls="tab-prep">Adım 0: Blok Hazırlama</button>
+        <button type="button" class="tab-btn" id="tab-btn-enc" data-tab="enc" role="tab" aria-selected="false" aria-controls="tab-rounds">Şifreleme (Tur 0–10)</button>
+        <button type="button" class="tab-btn" id="tab-btn-key" data-tab="key" role="tab" aria-selected="false" aria-controls="tab-key">Anahtar Türetme</button>
+        <button type="button" class="tab-btn" id="tab-btn-dec" data-tab="dec" role="tab" aria-selected="false" aria-controls="tab-rounds">Deşifreleme</button>
+      </div>
+
+      <div class="present-bar" id="present-bar" aria-label="Sunum kısayolları">
+        <span class="keycap-hint"><kbd>1</kbd>–<kbd>4</kbd> <span id="kh-tabs">Sekme</span></span>
+        <span class="keycap-hint"><kbd>←</kbd><kbd>→</kbd> <span id="kh-step">Tur / Kelime</span></span>
+        <span class="keycap-hint"><kbd>N</kbd> <span id="kh-notes">Sunum Notu</span></span>
+        <span class="keycap-hint"><kbd>T</kbd> <span id="kh-theme">Tema</span></span>
+        <button type="button" id="toggle-notes-btn" class="compact-btn">Tüm Notları Aç</button>
+      </div>
     </div>
 
     <div class="round-controls" id="round-controls">
       <label class="diff-toggle">
         <input type="checkbox" id="show-diff-chk" checked>
-        <span>Karşılaştırma Metni (<strong id="diff-label-name">ARABB</strong>) Farklarını Matriste İşaretle</span>
+        <span class="diff-dot" aria-hidden="true"></span>
+        <span id="diff-toggle-text"><strong id="diff-label-name">ARABB</strong> farklarını matriste işaretle</span>
       </label>
       <div class="round-buttons" id="round-buttons"></div>
     </div>
   </nav>
 
-  <main class="container">
-    <!-- SEKME 1: ADIM 0 HAZIRLIK -->
-    <section id="tab-prep" class="tab-panel active">
-      <div class="guide-box">
-        <strong>Sınıfa Anlatım Özeti:</strong> Bilgisayar harfleri ASCII tablosundaki sayılar olarak tutar (A=65=0x41). AES her zaman 16 baytlık (128 bit) bloklarla çalışır. "ARABA" 5 harf olduğu için kalan 11 bayt 00 ile doldurulur ve 4x4 durum (state) tablosuna <strong>yukarıdan aşağıya (sütun sütun)</strong> yerleştirilir.
+  <main class="container" id="main-content" tabindex="-1">
+    <section id="tab-prep" class="tab-panel active" role="tabpanel" aria-labelledby="tab-btn-prep">
+      <div class="guide-strip">
+        <div class="guide-box" id="prep-guide"></div>
+        <details class="presenter-note" data-note-id="prep">
+          <summary><span class="note-title">Sunum Notu</span> <span class="note-meta" id="prep-note-meta">Konuşmacı 1 · Adım 0 ipuçları</span></summary>
+          <div class="note-body" id="prep-note-body"></div>
+        </details>
       </div>
       <div class="two-col" id="prep-content"></div>
     </section>
 
-    <!-- SEKME 2 & 4: ŞİFRELEME VE DEŞİFRELEME TURLARI -->
-    <section id="tab-rounds" class="tab-panel">
-      <div class="guide-box" id="round-guide"></div>
+    <section id="tab-rounds" class="tab-panel" role="tabpanel">
+      <div class="guide-strip">
+        <div class="guide-box" id="round-guide"></div>
+        <details class="presenter-note" data-note-id="round">
+          <summary><span class="note-title">Sunum Notu</span> <span class="note-meta" id="round-note-meta">Konuşmacı 2 · Tur akışı ipuçları</span></summary>
+          <div class="note-body" id="round-note-body"></div>
+        </details>
+      </div>
+
       <div class="matrices-grid" id="matrices-grid"></div>
 
       <div class="bottom-split">
         <div class="card">
           <div class="card-head">
-            <h2 id="insp-title">Tahta Çözüm Denetçisi (Hücre Matematiği)</h2>
+            <h2 id="insp-title">Hücre Matematiği Denetçisi</h2>
             <span class="coord-badge" id="insp-coord"></span>
           </div>
           <div id="insp-content"></div>
+          <details class="presenter-note presenter-note-inline" data-note-id="insp">
+            <summary><span class="note-title">Sunum Notu</span> <span class="note-meta" id="insp-note-meta">Olası soru ve tahta kanıtı</span></summary>
+            <div class="note-body" id="insp-note-body"></div>
+          </details>
         </div>
 
         <div class="card">
           <div class="card-head">
-            <h2 id="sbox-title">S-Box / InvS-Box Arama Tablosu (16x16)</h2>
-            <span class="muted-note">İlk hane satır, ikinci hane sütun</span>
+            <h2 id="sbox-title">S-Box Arama Tablosu (16×16)</h2>
+            <span class="muted-note" id="sbox-hint">İlk nibble satır, ikinci nibble sütun</span>
           </div>
-          <div id="sbox-grid"></div>
+          <div id="sbox-grid" class="table-scroll"></div>
         </div>
       </div>
     </section>
 
-    <!-- SEKME 3: ANAHTAR GENİŞLETME -->
-    <section id="tab-key" class="tab-panel">
-      <div class="guide-box">
-        <strong>Anahtar Türetme (Key Expansion) Mantığı:</strong> Elimizdeki tek 16 baytlık anahtardan 11 tur için (Başlangıç + 10 Tur) toplam 44 adet 4 baytlık sütun (W[0]..W[43]) üretilir. 4'ün katı olan sütunlarda (W[4], W[8]...) bir önceki sütun yukarı kaydırılır (RotWord), S-Box'tan geçirilir (SubWord) ve tur sabiti (Rcon) ile XOR'lanır.
+    <section id="tab-key" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-key">
+      <div class="guide-strip">
+        <div class="guide-box" id="key-guide"></div>
+        <details class="presenter-note" data-note-id="key">
+          <summary><span class="note-title">Sunum Notu</span> <span class="note-meta" id="key-note-meta">Konuşmacı 1 · Key Schedule ipuçları</span></summary>
+          <div class="note-body" id="key-note-body"></div>
+        </details>
       </div>
       <div class="bottom-split">
         <div class="card">
           <div class="card-head">
-            <h2>11 Tur Anahtarı (Türetme hesabını görmek için W[i] sütununa tıklayın)</h2>
+            <h2 id="key-table-title">11 Tur Anahtarı (44 Kelime)</h2>
+            <span class="muted-note" id="key-table-hint">Hesabı incelemek için bir W[i] sütunu seçin</span>
           </div>
-          <div id="key-schedule-table"></div>
+          <div id="key-schedule-table" class="table-scroll"></div>
         </div>
         <div class="card">
           <div class="card-head">
-            <h2 id="key-insp-title">Seçili Kelime (Word) Hesabı</h2>
+            <h2 id="key-insp-title">Seçili Kelime Türetimi</h2>
           </div>
           <div id="key-insp-content"></div>
         </div>

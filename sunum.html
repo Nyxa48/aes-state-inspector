@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="tr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AES-128 Sunum — FIPS-197 Blok Şifreleme ve Çığ Etkisi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root,
+    [data-theme="dark"] {
+      --bg: #0f0f10;
+      --slide-bg: #141415;
+      --panel: #19191b;
+      --surface-alt: #232325;
+      --hover-bg: #2a2a2d;
+      --border: rgba(237, 237, 237, 0.09);
+      --border-strong: rgba(237, 237, 237, 0.18);
+      --text: #ededed;
+      --text-secondary: #a1a1a6;
+      --muted: #96969e;
+      --accent: #3b82f6;
+      --accent-soft: rgba(59, 130, 246, 0.14);
+      --accent-text: #93c5fd;
+      --spk2: #10b981;
+      --spk2-text: #6ee7b7;
+      --diff: #f87171;
+      --diff-bg: rgba(229, 72, 77, 0.14);
+      --diff-solid: #dc2626;
+      --btn-bg: #ededed;
+      --btn-text: #141415;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      --mono: "JetBrains Mono", "Cascadia Mono", "Consolas", monospace;
+      --sans: "IBM Plex Sans", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+
+    [data-theme="light"] {
+      --bg: #ececef;
+      --slide-bg: #fafafa;
+      --panel: #ffffff;
+      --surface-alt: #f4f4f5;
+      --hover-bg: #e8e8ec;
+      --border: rgba(23, 23, 23, 0.09);
+      --border-strong: rgba(23, 23, 23, 0.18);
+      --text: #171717;
+      --text-secondary: #525252;
+      --muted: #595962;
+      --accent: #2563eb;
+      --accent-soft: rgba(37, 99, 235, 0.09);
+      --accent-text: #1d4ed8;
+      --spk2: #059669;
+      --spk2-text: #047857;
+      --diff: #b91c1c;
+      --diff-bg: rgba(220, 38, 38, 0.08);
+      --diff-solid: #dc2626;
+      --btn-bg: #171717;
+      --btn-text: #ffffff;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .progress-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 3px;
+      background: var(--accent);
+      transition: width 220ms var(--ease);
+      z-index: 100;
+    }
+
+    .deck-viewport {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .slide-deck {
+      position: relative;
+      width: min(100%, calc((100vh - 32px) * 16 / 9));
+      aspect-ratio: 16 / 9;
+      background: var(--slide-bg);
+      border: 1px solid var(--border-strong);
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .deck-topbar {
+      min-height: 56px;
+      padding: 8px 32px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      flex-shrink: 0;
+      background: var(--panel);
+    }
+
+    .speaker-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 28px;
+      padding: 0 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      background: var(--surface-alt);
+      color: var(--text);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .dot-s1 { background: var(--accent); }
+    .dot-s2 { background: var(--spk2); }
+    .dot-both { background: linear-gradient(90deg, var(--accent) 50%, var(--spk2) 50%); }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .lang-switch {
+      display: inline-flex;
+      align-items: center;
+      height: 32px;
+      padding: 2px;
+      border-radius: 8px;
+      border: 1px solid var(--border-strong);
+      background: var(--slide-bg);
+      gap: 2px;
+    }
+
+    .lang-btn {
+      height: 26px;
+      min-width: 34px;
+      padding: 0 8px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .lang-btn:hover {
+      background: var(--hover-bg);
+      color: var(--text);
+    }
+
+    .lang-btn.active {
+      background: var(--btn-bg);
+      color: var(--btn-text);
+    }
+
+    .top-btn,
+    .top-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 32px;
+      padding: 0 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-strong);
+      background: var(--surface-alt);
+      color: var(--text-secondary);
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background-color 150ms var(--ease), color 150ms var(--ease);
+    }
+
+    .top-btn:hover,
+    .top-link:hover {
+      background: var(--hover-bg);
+      color: var(--text);
+    }
+
+    .top-btn[aria-pressed="true"] {
+      background: var(--btn-bg);
+      color: var(--btn-text);
+      border-color: var(--btn-bg);
+    }
+
+    .slides-stage {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      padding: 36px 48px 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(6px);
+      transition: opacity 220ms var(--ease), transform 220ms var(--ease), visibility 220ms;
+    }
+
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .slide-kicker {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    h1.hero-title {
+      font-size: clamp(28px, 3.4vw, 46px);
+      font-weight: 600;
+      line-height: 1.12;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      max-width: 22ch;
+    }
+
+    h2.slide-heading {
+      font-size: clamp(22px, 2.4vw, 32px);
+      font-weight: 600;
+      line-height: 1.18;
+      letter-spacing: -0.015em;
+      color: var(--text);
+      margin-bottom: 20px;
+    }
+
+    .hero-sub {
+      font-size: clamp(15px, 1.35vw, 19px);
+      color: var(--text-secondary);
+      max-width: 52ch;
+      margin-top: 12px;
+      line-height: 1.5;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 28px;
+      align-items: center;
+    }
+
+    .split-even {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .split > *,
+    .split-even > * {
+      min-width: 0;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      min-width: 0;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .bullet-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .bullet-list li {
+      position: relative;
+      padding-left: 16px;
+      font-size: clamp(14px, 1.15vw, 16px);
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    .bullet-list li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 9px;
+      width: 6px;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--accent);
+    }
+
+    .bullet-list li strong {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .mono {
+      font-family: var(--mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    code {
+      font-family: var(--mono);
+      font-size: 0.9em;
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      color: var(--text);
+    }
+
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .metric-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+    }
+
+    .metric-val {
+      font-family: var(--mono);
+      font-size: clamp(20px, 2vw, 28px);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+    }
+
+    .metric-lbl {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .mini-matrix {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 6px;
+      font-family: var(--mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .mini-matrix td {
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      text-align: center;
+      padding: 10px 6px;
+      font-size: clamp(14px, 1.3vw, 18px);
+      font-weight: 500;
+    }
+
+    .mini-matrix td span.idx {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 400;
+      margin-bottom: 2px;
+    }
+
+    .mini-matrix td.hl-col {
+      border-color: rgba(59, 130, 246, 0.45);
+      background: var(--accent-soft);
+      color: var(--accent-text);
+    }
+
+    .mini-matrix td.hl-diff {
+      border-color: rgba(229, 72, 77, 0.5);
+      background: var(--diff-bg);
+      color: var(--diff);
+    }
+
+    .pipeline-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .pipe-step {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .pipe-num {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--accent-text);
+    }
+
+    .pipe-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .pipe-role {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    .pipe-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.45;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+
+    .data-table th {
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 12px;
+    }
+
+    .data-table tr.row-hl {
+      background: var(--accent-soft);
+    }
+
+    .data-table tr.row-hl td {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .demo-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 16px;
+      height: 36px;
+      padding: 0 16px;
+      border-radius: 8px;
+      background: var(--btn-bg);
+      color: var(--btn-text);
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      width: fit-content;
+      transition: opacity 150ms var(--ease);
+    }
+
+    .demo-cta:hover {
+      opacity: 0.9;
+    }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+
+    .demo-card {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 10px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      text-decoration: none;
+      color: var(--text);
+      transition: border-color 150ms var(--ease), background-color 150ms var(--ease);
+    }
+
+    .demo-card:hover {
+      border-color: var(--accent);
+      background: var(--surface-alt);
+    }
+
+    .demo-card-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .demo-card h3 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .demo-card p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.45;
+    }
+
+    .chart-wrap {
+      width: 100%;
+    }
+
+    .chart-svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .stat-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .stat-row-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .stat-row-card.accent-red {
+      border-left: 3px solid var(--diff-solid);
+    }
+
+    .stat-row-card .lbl {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .stat-row-card .val {
+      font-family: var(--mono);
+      font-size: 15px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    /* Konuşmacı Notları Alt Çekmecesi */
+    .speaker-notes {
+      display: none;
+      border-top: 1px solid var(--border);
+      background: var(--panel);
+      padding: 12px 32px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      flex-shrink: 0;
+    }
+
+    .speaker-notes.visible {
+      display: block;
+    }
+
+    .speaker-notes strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* Alt Navigasyon */
+    .deck-footer {
+      height: 52px;
+      padding: 0 32px;
+      border-top: 1px solid var(--border);
+      background: var(--panel);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .footer-hint {
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    kbd {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 5px;
+      border-radius: 4px;
+      border: 1px solid var(--border-strong);
+      background: var(--surface-alt);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+
+    .nav-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nav-btn {
+      height: 32px;
+      padding: 0 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-strong);
+      background: var(--surface-alt);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .nav-btn:hover:not(:disabled) {
+      background: var(--hover-bg);
+    }
+
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    .slide-counter {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-secondary);
+      min-width: 54px;
+      text-align: center;
+    }
+
+    @media (max-width: 900px) {
+      .deck-viewport { padding: 0; }
+      .slide-deck { width: 100%; height: 100%; aspect-ratio: auto; border-radius: 0; border: none; }
+      .deck-topbar, .deck-footer, .speaker-notes { padding-left: 16px; padding-right: 16px; }
+      .slide { padding: 20px; overflow-y: auto; justify-content: flex-start; }
+      .split, .split-even, .pipeline-4, .demo-grid, .metrics-row { grid-template-columns: 1fr; }
+      .footer-hint { display: none; }
+    }
+
+    @media (pointer: coarse) {
+      .top-btn, .top-link, .nav-btn, .demo-cta, .lang-switch { min-height: 44px; }
+      .lang-btn { height: 38px; min-width: 40px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="progress-bar" id="progressBar"></div>
+
+  <div class="deck-viewport">
+    <div class="slide-deck">
+      <header class="deck-topbar">
+        <div class="speaker-pill" id="speakerPill">
+          <span class="dot dot-both" id="speakerDot"></span>
+          <span id="speakerLabel">Ortak Açılış</span>
+        </div>
+        <div class="topbar-actions">
+          <div class="lang-switch" role="group" aria-label="Dil / Language">
+            <button type="button" class="lang-btn active" data-lang="tr" aria-pressed="true">TR</button>
+            <button type="button" class="lang-btn" data-lang="en" aria-pressed="false">EN</button>
+          </div>
+          <button type="button" class="top-btn" id="notesToggleBtn" aria-pressed="false" data-i18n="ui.notesBtn">Konuşmacı Notu (N)</button>
+          <button type="button" class="top-btn" id="themeToggleBtn">Açık Tema (T)</button>
+          <a href="index.html?present=1" id="labHeaderLink" class="top-link" data-i18n="ui.labLink">Canlı Laboratuvara Geç →</a>
+        </div>
+      </header>
+
+      <main class="slides-stage">
+        <!-- SLIDE 1 -->
+        <section class="slide active" data-speaker-tr="Ortak Açılış" data-speaker-en="Joint Opening" data-role="both"
+          data-note-tr="1. Konuşmacı konuyu ve amacı kısaca tanıtır (15 sn). 2. Konuşmacı canlı simülasyonla tüm matematiği göstereceklerini belirterek 2. slayta geçer."
+          data-note-en="Speaker 1 briefly introduces the project scope (15s). Speaker 2 previews the live workbench walkthrough before moving to Slide 2.">
+          <div class="split">
+            <div>
+              <div class="slide-kicker">FIPS-197 · Advanced Encryption Standard</div>
+              <h1 class="hero-title" data-i18n="s1.title">AES-128: Simetrik Blok Şifreleme ve Çığ Etkisi</h1>
+              <p class="hero-sub" data-i18n="s1.sub">Harici şifreleme kütüphanesi olmadan, saf JavaScript ile <code>GF(2⁸)</code> sonlu cisim aritmetiği, anahtar türetme ve bit düzeyinde durum denetimi.</p>
+              <div class="metrics-row">
+                <div class="metric-card">
+                  <div class="metric-val" data-i18n="s1.m1v">128 bit</div>
+                  <div class="metric-lbl" data-i18n="s1.m1l">16 bayt blok & anahtar</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-val" data-i18n="s1.m2v">10 tur</div>
+                  <div class="metric-lbl" data-i18n="s1.m2l">44 kelimelik anahtar</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-val" data-i18n="s1.m3v">%50.8</div>
+                  <div class="metric-lbl" data-i18n="s1.m3l">2 bit fark → 65 bit değişim</div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title"><span data-i18n="s1.vecTitle">Örnek Vektör Özeti</span><span class="mono" style="font-size:12px;color:var(--muted);" data-i18n="s1.vecBadge">Sütun-öncelikli 4×4</span></div>
+              <table class="mini-matrix">
+                <tbody>
+                  <tr>
+                    <td class="hl-col"><span class="idx">s[0,0] A</span>41</td>
+                    <td class="hl-diff"><span class="idx">s[0,1] A/B</span>41</td>
+                    <td><span class="idx">s[0,2]</span>00</td>
+                    <td><span class="idx">s[0,3]</span>00</td>
+                  </tr>
+                  <tr>
+                    <td class="hl-col"><span class="idx">s[1,0] R</span>52</td>
+                    <td><span class="idx">s[1,1]</span>00</td>
+                    <td><span class="idx">s[1,2]</span>00</td>
+                    <td><span class="idx">s[1,3]</span>00</td>
+                  </tr>
+                  <tr>
+                    <td class="hl-col"><span class="idx">s[2,0] A</span>41</td>
+                    <td><span class="idx">s[2,1]</span>00</td>
+                    <td><span class="idx">s[2,2]</span>00</td>
+                    <td><span class="idx">s[2,3]</span>00</td>
+                  </tr>
+                  <tr>
+                    <td class="hl-col"><span class="idx">s[3,0] B</span>42</td>
+                    <td><span class="idx">s[3,1]</span>00</td>
+                    <td><span class="idx">s[3,2]</span>00</td>
+                    <td><span class="idx">s[3,3]</span>00</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div style="margin-top:12px;font-size:12px;color:var(--text-secondary);" class="mono">
+                <span data-i18n="s1.r10out">Tur 10 çıktısı:</span> <strong style="color:var(--text);">EA 38 5F A9 15 11 6B 6D 7C 3A EB A0 1F A0 0C C4</strong>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 2 -->
+        <section class="slide" data-speaker-tr="1. Konuşmacı · Temel Mimari" data-speaker-en="Speaker 1 · Core Architecture" data-role="s1"
+          data-note-tr="1. Konuşmacı: DES'in 56-bit anahtarının günümüzde yetersiz kalmasıyla 2001'de Rijndael'in AES standardı seçildiğini vurgulayın. Sabit 128-bit blok ve 10 turluk SPN yapısını özetleyin."
+          data-note-en="Speaker 1: Highlight how 56-bit DES fell to brute force and NIST standardized Rijndael (FIPS-197) in 2001, operating as a 10-round Substitution-Permutation Network on 16-byte blocks.">
+          <div class="slide-kicker" data-i18n="s2.kick">01 · Genel Çerçeve</div>
+          <h2 class="slide-heading" data-i18n="s2.title">Neden AES ve 128-Bit Blok Yapısı?</h2>
+          <div class="split">
+            <ul class="bullet-list">
+              <li data-i18n="s2.b1"><strong>Simetrik yapı:</strong> Gönderici ve alıcı aynı 128-bit (16 bayt) gizli anahtarı paylaşır; gizlilik şifreleme adımlarının geri alınabilirliğiyle korunur.</li>
+              <li data-i18n="s2.b2"><strong>Feistel değil, SPN ağı:</strong> DES'ten farklı olarak her turda bloğun yarısını değil, <strong>16 baytın tamamını</strong> aynı anda işler.</li>
+              <li data-i18n="s2.b3"><strong>Sabit blok disiplini:</strong> Girdi kısa olsa bile 16 bayta tamamlanır (<code>0x00</code> veya <code>PKCS#7</code>) ve 4×4 durum (state) matrisine dönüştürülür.</li>
+              <li data-i18n="s2.b4"><strong>Projenin farkı:</strong> Hazır <code>crypto</code> API kullanmak yerine tüm <code>GF(2⁸)</code> çarpımları, S-Box ve ters matrisler sıfırdan hesaplanır.</li>
+            </ul>
+            <div class="card">
+              <div class="card-title"><span data-i18n="s2.tblTitle">AES Ailesi Karşılaştırması</span><span class="mono" style="font-size:12px;color:var(--muted);">FIPS-197</span></div>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th data-i18n="s2.th1">Standart</th>
+                    <th data-i18n="s2.th2">Anahtar (Nk)</th>
+                    <th data-i18n="s2.th3">Blok</th>
+                    <th data-i18n="s2.th4">Tur Sayısı</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="row-hl"><td>AES-128</td><td data-i18n="s2.k128">128 bit (4 kelime)</td><td>128 bit</td><td data-i18n="s2.r10">10 tur</td></tr>
+                  <tr><td>AES-192</td><td data-i18n="s2.k192">192 bit (6 kelime)</td><td>128 bit</td><td data-i18n="s2.r12">12 tur</td></tr>
+                  <tr><td>AES-256</td><td data-i18n="s2.k256">256 bit (8 kelime)</td><td>128 bit</td><td data-i18n="s2.r14">14 tur</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 3 -->
+        <section class="slide" data-speaker-tr="1. Konuşmacı · Adım 0" data-speaker-en="Speaker 1 · Step 0" data-role="s1"
+          data-note-tr="1. Konuşmacı: Öğrencilerin en çok karıştırdığı noktanın matrise satır satır değil SÜTUN SÜTUN yazım olduğunu belirtin. ARABA ve ARABB farkının sadece 5. baytta (s[0,1]) 2 bit olduğunu gösterin."
+          data-note-en="Speaker 1: Emphasize that bytes fill the 4×4 state matrix COLUMN BY COLUMN, not row by row. Point out the 2-bit difference between ARABA and ARABB in Byte 5 (s[0,1]).">
+          <div class="slide-kicker" data-i18n="s3.kick">02 · Blok Hazırlama</div>
+          <h2 class="slide-heading" data-i18n="s3.title">Adım 0: Metinden Sütun-Öncelikli Durum Matrisine</h2>
+          <div class="split">
+            <div>
+              <ul class="bullet-list">
+                <li data-i18n="s3.b1"><strong>ASCII → Hex dönüşümü:</strong> <code>"ARABA"</code> kelimesi sırasıyla <code>41 52 41 42 41</code> baytlarına dönüşür.</li>
+                <li data-i18n="s3.b2"><strong>16 bayta tamamlama:</strong> Kalan 11 bayt sunum örneğinde <code>00</code> ile doldurulur.</li>
+                <li data-i18n="s3.b3"><strong>Sütun-öncelikli (Column-Major) yerleşim:</strong> İlk 4 bayt 1. satıra değil, <strong>1. sütuna yukarıdan aşağıya</strong> yazılır.</li>
+                <li data-i18n="s3.b4"><strong>Kontrollü fark:</strong> Karşılaştırma metni <code>"ARABB"</code> yalnızca 5. baytta (<code>s[0,1]</code>) 2 bit farklıdır: <code>0x41 (01000001)</code> vs <code>0x42 (01000010)</code>.</li>
+              </ul>
+              <a href="index.html?tab=prep&present=1" class="demo-cta" data-lab-link data-i18n="s3.cta">Adım 0'ı laboratuvarda aç →</a>
+            </div>
+            <div class="card">
+              <div class="card-title"><span data-i18n="s3.matTitle">Durum Matrisi Dizilimi (ARABA vs ARABB)</span></div>
+              <table class="mini-matrix">
+                <tbody>
+                  <tr>
+                    <td class="hl-col"><span class="idx" data-i18n="s3.b1i">1. Bayt · s[0,0]</span>41 (A)</td>
+                    <td class="hl-diff"><span class="idx" data-i18n="s3.b5i">5. Bayt · s[0,1]</span>41 ≠ 42</td>
+                    <td><span class="idx" data-i18n="s3.b9i">9. Bayt · s[0,2]</span>00</td>
+                    <td><span class="idx" data-i18n="s3.b13i">13. Bayt · s[0,3]</span>00</td>
+                  </tr>
+                  <tr>
+                    <td class="hl-col"><span class="idx" data-i18n="s3.b2i">2. Bayt · s[1,0]</span>52 (R)</td>
+                    <td><span class="idx" data-i18n="s3.b6i">6. Bayt · s[1,1]</span>00</td>
+                    <td><span class="idx" data-i18n="s3.b10i">10. Bayt · s[1,2]</span>00</td>
+                    <td><span class="idx" data-i18n="s3.b14i">14. Bayt · s[1,3]</span>00</td>
+                  </tr>
+                  <tr>
+                    <td class="hl-col"><span class="idx" data-i18n="s3.b3i">3. Bayt · s[2,0]</span>41 (A)</td>
+                    <td><span class="idx" data-i18n="s3.b7i">7. Bayt · s[2,1]</span>00</td>
+                    <td><span class="idx" data-i18n="s3.b11i">11. Bayt · s[2,2]</span>00</td>
+                    <td><span class="idx" data-i18n="s3.b15i">15. Bayt · s[2,3]</span>00</td>
+                  </tr>
+                  <tr>
+                    <td class="hl-col"><span class="idx" data-i18n="s3.b4i">4. Bayt · s[3,0]</span>42 (B)</td>
+                    <td><span class="idx" data-i18n="s3.b8i">8. Bayt · s[3,1]</span>00</td>
+                    <td><span class="idx" data-i18n="s3.b12i">12. Bayt · s[3,2]</span>00</td>
+                    <td><span class="idx" data-i18n="s3.b16i">16. Bayt · s[3,3]</span>00</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 4 -->
+        <section class="slide" data-speaker-tr="1. Konuşmacı · Key Schedule" data-speaker-en="Speaker 1 · Key Schedule" data-role="s1"
+          data-note-tr="1. Konuşmacı: Tek 16 bayt anahtardan 11 adet tur anahtarı (Tur 0 dahil) çıktığını, bunun da 44 sütuna denk geldiğini anlatın. Sağdaki W[4] adımlarını sırayla okuyup sözü 2. konuşmacıya devredin."
+          data-note-en="Speaker 1: Explain why 11 round keys require 44 words (W[0]..W[43]). Walk through the 6-step W[4] table on the right and hand over to Speaker 2.">
+          <div class="slide-kicker" data-i18n="s4.kick">03 · Anahtar Genişletme (Key Schedule)</div>
+          <h2 class="slide-heading" data-i18n="s4.title">16 Baytlık Anahtardan 44 Kelimelik Anahtar Takvimine</h2>
+          <div class="split">
+            <div>
+              <ul class="bullet-list">
+                <li data-i18n="s4.b1"><strong>Neden 44 kelime?</strong> Başlangıç + 10 şifreleme turu = 11 tur anahtarı. Her tur anahtarı 4 sütun (kelime) içerir: <code>W[0]..W[43]</code>.</li>
+                <li data-i18n="s4.b2"><strong>Standart sütunlar:</strong> 4'ün katı olmayan indekslerde yalnızca <code>W[i] = W[i-4] ⊕ W[i-1]</code> uygulanır.</li>
+                <li data-i18n="s4.b3"><strong>4'ün katı sütunlar (W[4], W[8]...):</strong> Simetriyi kırmak için <code>RotWord</code> (1 bayt sola kaydırma), <code>SubWord</code> (S-Box) ve <code>Rcon</code> tur sabiti eklenir.</li>
+              </ul>
+              <a href="index.html?tab=key&present=1" class="demo-cta" data-lab-link data-i18n="s4.cta">Anahtar Türetmeyi aç →</a>
+            </div>
+            <div class="card">
+              <div class="card-title"><span data-i18n="s4.tblTitle">Canlı Örnek: W[4] Sütunu Üretimi</span><span class="mono" style="font-size:12px;color:var(--accent-text);">i = 4 (mod 4 = 0)</span></div>
+              <table class="data-table mono">
+                <tbody>
+                  <tr><th data-i18n="s4.r1">1. Önceki W[3]</th><td>09 CF 4F 3C</td></tr>
+                  <tr><th>2. RotWord</th><td>CF 4F 3C 09</td></tr>
+                  <tr><th>3. SubWord (S-Box)</th><td>8A 84 EB 01</td></tr>
+                  <tr><th>4. ⊕ Rcon[1] (01000000)</th><td>8B 84 EB 01</td></tr>
+                  <tr><th data-i18n="s4.r5">5. W[0] kelimesi</th><td>2B 7E 15 16</td></tr>
+                  <tr class="row-hl"><th data-i18n="s4.r6">6. Sonuç W[4]</th><td><strong>A0 FA FE 17</strong></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 5 -->
+        <section class="slide" data-speaker-tr="2. Konuşmacı · Tur Akışı" data-speaker-en="Speaker 2 · Round Pipeline" data-role="s2"
+          data-note-tr="2. Konuşmacı burada devralır: Tur 0'da yalnızca AddRoundKey yapıldığını, Tur 1-9'da 4 adımın tamamının uygulandığını, 10. turda ise MixColumns'un çıkarıldığını vurgulayın."
+          data-note-en="Speaker 2 takes over: highlight initial AddRoundKey in Round 0, the full 4-stage pipeline in Rounds 1–9, and why MixColumns is omitted in Round 10.">
+          <div class="slide-kicker" data-i18n="s5.kick">04 · Şifreleme Döngüsü</div>
+          <h2 class="slide-heading" data-i18n="s5.title">Bir AES Turunun 4 Adımı: Karışıklık ve Yayılma</h2>
+          <div class="pipeline-4">
+            <div class="pipe-step">
+              <div class="pipe-num">01 · SubBytes</div>
+              <div class="pipe-name" data-i18n="s5.p1n">Doğrusal Olmayan Değişim</div>
+              <div class="pipe-role" data-i18n="s5.p1r">Karışıklık (Confusion)</div>
+              <div class="pipe-desc" data-i18n="s5.p1d">Her bayt bağımsız olarak 16×16 S-Box tablosundan geçirilir.</div>
+            </div>
+            <div class="pipe-step">
+              <div class="pipe-num">02 · ShiftRows</div>
+              <div class="pipe-name" data-i18n="s5.p2n">Satır Kaydırma</div>
+              <div class="pipe-role" data-i18n="s5.p2r">Sütunlar Arası Geçiş</div>
+              <div class="pipe-desc" data-i18n="s5.p2d">0., 1., 2. ve 3. satırlar sırasıyla 0, 1, 2, 3 kutu sola kaydırılır.</div>
+            </div>
+            <div class="pipe-step">
+              <div class="pipe-num">03 · MixColumns</div>
+              <div class="pipe-name" data-i18n="s5.p3n">Sütun Karıştırma</div>
+              <div class="pipe-role" data-i18n="s5.p3r">Yayılma (Diffusion)</div>
+              <div class="pipe-desc" data-i18n="s5.p3d">Her sütun sabit MDS matrisiyle çarpılır; 1 baytlık fark 4 bayta yayılır.</div>
+            </div>
+            <div class="pipe-step">
+              <div class="pipe-num">04 · AddRoundKey</div>
+              <div class="pipe-name" data-i18n="s5.p4n">Anahtar Mühürleme</div>
+              <div class="pipe-role" data-i18n="s5.p4r">Gizlilik (Key Mixing)</div>
+              <div class="pipe-desc" data-i18n="s5.p4d">16 bayt durum matrisi o turun anahtarıyla bayt bayt XOR'lanır.</div>
+            </div>
+          </div>
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:14px;color:var(--text-secondary);">
+              <span data-i18n="s5.f1"><strong style="color:var(--text);">Tur 0 (Başlangıç):</strong> Yalnızca <code>AddRoundKey(K0)</code></span>
+              <span data-i18n="s5.f2"><strong style="color:var(--text);">Tur 1–9:</strong> 4 adımın tamamı uygulanır</span>
+              <span data-i18n="s5.f3"><strong style="color:var(--text);">Tur 10 (Son Tur):</strong> <code>MixColumns</code> uygulanmaz (tersi anahtarsız açılabileceği için gereksizdir)</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 6 -->
+        <section class="slide" data-speaker-tr="2. Konuşmacı · SubBytes & GF(2⁸)" data-speaker-en="Speaker 2 · SubBytes & GF(2⁸)" data-role="s2"
+          data-note-tr="2. Konuşmacı: 'S-Box rastgele sayılardan mı oluşur?' sorusunun cevabı buradadır. 0x11B polinomunda çarpımsal ters + afin dönüşümle matematiksel olarak türetildiğini belirtin."
+          data-note-en="Speaker 2: Explain that the S-Box is algebraically constructed from multiplicative inverses modulo 0x11B plus an affine transform (XOR 0x63), not arbitrary numbers.">
+          <div class="slide-kicker" data-i18n="s6.kick">05 · Karışıklık Katmanı</div>
+          <h2 class="slide-heading" data-i18n="s6.title">SubBytes: GF(2⁸) Üzerinde S-Box Matematiği</h2>
+          <div class="split">
+            <div>
+              <ul class="bullet-list">
+                <li data-i18n="s6.b1"><strong>Neden doğrusal değil?</strong> Yalnızca kaydırma ve XOR işlemleri kullanılsaydı şifre doğrusal denklem sistemiyle çözülebilirdi.</li>
+                <li data-i18n="s6.b2"><strong>Adım 1 — Çarpımsal ters:</strong> Bayt, indirgenemez polinom <code>m(x) = x⁸ + x⁴ + x³ + x + 1</code> (<code>0x11B</code>) modunda <code>GF(2⁸)</code> tersine çevrilir (<code>00 → 00</code>).</li>
+                <li data-i18n="s6.b3"><strong>Adım 2 — Afin dönüşüm:</strong> Bit döndürmeleri ve <code>0x63</code> sabiti ile XOR uygulanarak sabit noktalar (<code>S(x) = x</code>) ortadan kaldırılır.</li>
+              </ul>
+              <a href="index.html?tab=enc&round=1&present=1" class="demo-cta" data-lab-link data-i18n="s6.cta">Tur 1 SubBytes'ı aç →</a>
+            </div>
+            <div class="card">
+              <div class="card-title"><span data-i18n="s6.tblTitle">Gerçek Hesap: Tur 1 · s[0,0] Hücresi</span><span class="mono" style="font-size:12px;color:var(--accent-text);">6A → 02</span></div>
+              <table class="data-table mono">
+                <thead><tr><th data-i18n="s6.th1">Aşama</th><th>Hex</th><th data-i18n="s6.th3">8-bit İkilik</th></tr></thead>
+                <tbody>
+                  <tr><td data-i18n="s6.r1">1. Girdi baytı</td><td>6A</td><td>01101010</td></tr>
+                  <tr><td data-i18n="s6.r2">2. GF(2⁸) tersi (mod 0x11B)</td><td>91</td><td>10010001</td></tr>
+                  <tr class="row-hl"><td data-i18n="s6.r3">3. Afin + 0x63 XOR</td><td><strong>02</strong></td><td><strong>00000010</strong></td></tr>
+                </tbody>
+              </table>
+              <div style="margin-top:12px;font-size:13px;color:var(--text-secondary);" data-i18n="s6.foot">
+                16×16 S-Box üzerinde <strong>6. satır, A sütunu</strong> kesişimi doğrudan <code>02</code> sonucunu verir.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 7 -->
+        <section class="slide" data-speaker-tr="2. Konuşmacı · ShiftRows & MixColumns" data-speaker-en="Speaker 2 · ShiftRows & MixColumns" data-role="s2"
+          data-note-tr="2. Konuşmacı: ShiftRows olmadan sütunların birbirinden bağımsız kalacağını açıklayın. MixColumns'da 0x02 ile çarparken MSB=1 ise neden 0x1B ile XOR yapıldığını (0x11B taşmasının alt 8 biti) vurgulayın."
+          data-note-en="Speaker 2: Explain how ShiftRows breaks column independence and how xtime (0x02) reduces 8-bit overflow via XOR 0x1B when MSB = 1.">
+          <div class="slide-kicker" data-i18n="s7.kick">06 · Yayılma Katmanı</div>
+          <h2 class="slide-heading" data-i18n="s7.title">ShiftRows ve MixColumns: 0x1B Taşma Kuralı</h2>
+          <div class="split-even">
+            <div class="card">
+              <div class="card-title"><span data-i18n="s7.c1t">ShiftRows · Satır Kaydırma</span><span class="mono" style="font-size:12px;color:var(--muted);" data-i18n="s7.c1b">Sütunlar arası yayılım</span></div>
+              <ul class="bullet-list">
+                <li data-i18n="s7.s0"><strong>Satır 0:</strong> Kaydırma yok (<code>0</code> birim)</li>
+                <li data-i18n="s7.s1"><strong>Satır 1:</strong> <code>1</code> bayt sola (tersinde sağa)</li>
+                <li data-i18n="s7.s2"><strong>Satır 2:</strong> <code>2</code> bayt sola (tersinde sağa)</li>
+                <li data-i18n="s7.s3"><strong>Satır 3:</strong> <code>3</code> bayt sola (tersinde sağa)</li>
+              </ul>
+              <div style="margin-top:14px;font-size:13px;color:var(--text-secondary);" data-i18n="s7.c1f">
+                Amaç: Aynı sütundaki 4 baytı bir sonraki adımda 4 farklı sütuna dağıtmak.
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title"><span data-i18n="s7.c2t">MixColumns · xtime ve 0x1B İndirgemesi</span><span class="mono" style="font-size:12px;color:var(--muted);" data-i18n="s7.c2b">Sütun içi yayılım</span></div>
+              <div style="font-family:var(--mono);font-size:12px;background:var(--surface-alt);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:12px;" data-i18n="s7.mds">
+                Sabit Matris: [02 03 01 01 / 01 02 03 01 / 01 01 02 03 / 03 01 01 02]
+              </div>
+              <ul class="bullet-list">
+                <li data-i18n="s7.m1"><strong>01 • b:</strong> Kendisidir (<code>b</code>).</li>
+                <li data-i18n="s7.m2"><strong>02 • b (xtime):</strong> 1 bit sola kaydırılır; eğer en sol bit (<strong>MSB = 1</strong>) 8 bitten taşarsa <code>0x1B</code> ile XOR alınır.</li>
+                <li data-i18n="s7.m3"><strong>03 • b:</strong> <code>(02 • b) ⊕ b</code> olarak hesaplanır; 4 terim alt alta XOR ile toplanır.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 8 -->
+        <section class="slide" data-speaker-tr="2. Konuşmacı · Çığ Etkisi Deneyi" data-speaker-en="Speaker 2 · Avalanche Experiment" data-role="s2"
+          data-note-tr="2. Konuşmacı: Bu grafik sunumun odak noktasıdır. Tur 0'da sadece 2 bit (%1.6) olan farkın, Tur 1'de MixColumns ile 23 bite (%18.0), Tur 2'de ise ShiftRows+MixColumns birleşimiyle 71 bite (%55.5) sıçrayıp 16 baytın tamamına yayıldığını gösterin."
+          data-note-en="Speaker 2: This chart is the centerpiece. Trace the 2-bit delta (1.6%) jumping to 23 bits (18.0%) after Round 1 MixColumns, then hitting all 16 bytes and 71 bits (55.5%) by Round 2.">
+          <div class="slide-kicker" data-i18n="s8.kick">07 · Çığ Etkisi (Avalanche Effect)</div>
+          <h2 class="slide-heading" data-i18n="s8.title">2 Bitlik Fark 2 Turda Tüm Bloğa Nasıl Yayılır?</h2>
+          <div class="split">
+            <div class="card chart-wrap">
+              <div class="card-title">
+                <span data-i18n="s8.chartTitle">ARABA vs ARABB — Değişen Bit Sayısı</span>
+                <span class="mono" style="font-size:11px;font-weight:500;color:var(--accent-text);" data-i18n="s8.legend">-- %50 eşiği (64 bit)</span>
+              </div>
+              <svg class="chart-svg" viewBox="0 0 560 280" role="img" aria-labelledby="chartTitleSvg chartDescSvg">
+                <title id="chartTitleSvg">ARABA vs ARABB Bit Avalanche Chart</title>
+                <desc id="chartDescSvg">Round 0: 2, Round 1: 23, Round 2: 71, Round 3: 66, Round 4: 66, Round 5: 58, Round 6: 60, Round 7: 65, Round 8: 58, Round 9: 72, Round 10: 65 of 128 bits flipped.</desc>
+                <line x1="48" y1="228" x2="536" y2="228" stroke="currentColor" stroke-opacity="0.14" />
+                <line x1="48" y1="181" x2="536" y2="181" stroke="currentColor" stroke-opacity="0.08" />
+                <line x1="48" y1="134" x2="536" y2="134" stroke="var(--accent)" stroke-opacity="0.6" stroke-dasharray="5 4" />
+                <line x1="48" y1="87" x2="536" y2="87" stroke="currentColor" stroke-opacity="0.08" />
+                <line x1="48" y1="40" x2="536" y2="40" stroke="currentColor" stroke-opacity="0.08" />
+
+                <text x="40" y="232" text-anchor="end" fill="var(--muted)" font-family="JetBrains Mono, monospace" font-size="11">0</text>
+                <text x="40" y="185" text-anchor="end" fill="var(--muted)" font-family="JetBrains Mono, monospace" font-size="11">32</text>
+                <text x="40" y="138" text-anchor="end" fill="var(--accent-text)" font-family="JetBrains Mono, monospace" font-size="11" font-weight="600">64</text>
+                <text x="40" y="91" text-anchor="end" fill="var(--muted)" font-family="JetBrains Mono, monospace" font-size="11">96</text>
+                <text x="40" y="44" text-anchor="end" fill="var(--muted)" font-family="JetBrains Mono, monospace" font-size="11">128</text>
+
+                <polygon points="58,225 104.8,194.2 151.6,123.7 198.4,131.1 245.2,131.1 292,142.8 338.8,139.9 385.6,132.5 432.4,142.8 479.2,122.2 526,132.5 526,228 58,228" fill="var(--diff-bg)" />
+                <polyline fill="none" stroke="var(--diff-solid)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"
+                  points="58,225 104.8,194.2 151.6,123.7 198.4,131.1 245.2,131.1 292,142.8 338.8,139.9 385.6,132.5 432.4,142.8 479.2,122.2 526,132.5" />
+
+                <circle cx="58" cy="225" r="4" fill="var(--diff-solid)" />
+                <circle cx="104.8" cy="194.2" r="4" fill="var(--diff-solid)" />
+                <circle cx="151.6" cy="123.7" r="4.5" fill="var(--diff-solid)" stroke="var(--panel)" stroke-width="1.5" />
+                <circle cx="198.4" cy="131.1" r="3.5" fill="var(--diff-solid)" />
+                <circle cx="245.2" cy="131.1" r="3.5" fill="var(--diff-solid)" />
+                <circle cx="292" cy="142.8" r="3.5" fill="var(--diff-solid)" />
+                <circle cx="338.8" cy="139.9" r="3.5" fill="var(--diff-solid)" />
+                <circle cx="385.6" cy="132.5" r="3.5" fill="var(--diff-solid)" />
+                <circle cx="432.4" cy="142.8" r="3.5" fill="var(--diff-solid)" />
+                <circle cx="479.2" cy="122.2" r="3.5" fill="var(--diff-solid)" />
+                <circle cx="526" cy="132.5" r="4.5" fill="var(--diff-solid)" stroke="var(--panel)" stroke-width="1.5" />
+
+                <text x="58" y="216" text-anchor="middle" fill="var(--diff)" font-family="JetBrains Mono, monospace" font-size="11" font-weight="600">2</text>
+                <text x="104.8" y="184" text-anchor="middle" fill="var(--diff)" font-family="JetBrains Mono, monospace" font-size="11" font-weight="600">23</text>
+                <text x="151.6" y="112" text-anchor="middle" fill="var(--diff)" font-family="JetBrains Mono, monospace" font-size="11" font-weight="600">71</text>
+                <text x="526" y="121" text-anchor="middle" fill="var(--diff)" font-family="JetBrains Mono, monospace" font-size="11" font-weight="600">65</text>
+
+                <text x="58" y="250" text-anchor="middle" fill="var(--muted)" font-family="JetBrains Mono, monospace" font-size="11">T0</text>
+                <text x="104.8" y="250" text-anchor="middle" fill="var(--muted)" font-family="JetBrains Mono, monospace" font-size="11">T1</text>
+                <text x="151.6" y="250" text-anchor="middle" fill="var(--muted)" font-family="JetBrains Mono, monospace" font-size="11">T2</text>
+                <text x="198.4" y="250" text-anchor="middle" fill="var(--muted)" font-family="JetBrains Mono, monospace" font-size="11">T3</text>
+                <text x="245.2" y="250" text-anchor="middle" fill="var(--muted)" font-family="JetBrains Mono, monospace" font-size="11">T4</text>
+                <text x="292" y="250" text-anchor="middle" fill="var(--muted)" font-family="JetBrains Mono, monospace" font-size="11">T5</text>
+                <text x="338.8" y="250" text-anchor="middle" fill="var(--muted)" font-family="JetBrains Mono, monospace" font-size="11">T6</text>
+                <text x="385.6" y="250" text-anchor="middle" fill="var(--muted)" font-family="JetBrains Mono, monospace" font-size="11">T7</text>
+                <text x="432.4" y="250" text-anchor="middle" fill="var(--muted)" font-family="JetBrains Mono, monospace" font-size="11">T8</text>
+                <text x="479.2" y="250" text-anchor="middle" fill="var(--muted)" font-family="JetBrains Mono, monospace" font-size="11">T9</text>
+                <text x="526" y="250" text-anchor="middle" fill="var(--muted)" font-family="JetBrains Mono, monospace" font-size="11">T10</text>
+              </svg>
+            </div>
+            <div class="stat-stack">
+              <div class="stat-row-card">
+                <div><div class="lbl" data-i18n="s8.st0t">Tur 0 (Başlangıç)</div><div style="font-size:12px;color:var(--muted);" data-i18n="s8.st0d">Sadece 5. bayt (s[0,1]) farklı</div></div>
+                <div class="val" data-i18n="s8.st0v">2 / 128 bit (%1.6)</div>
+              </div>
+              <div class="stat-row-card">
+                <div><div class="lbl" data-i18n="s8.st1t">Tur 1 Sonu</div><div style="font-size:12px;color:var(--muted);" data-i18n="s8.st1d">MixColumns farkı 1. sütuna (4 bayt) yayar</div></div>
+                <div class="val" data-i18n="s8.st1v">23 / 128 bit (%18.0)</div>
+              </div>
+              <div class="stat-row-card">
+                <div><div class="lbl" data-i18n="s8.st2t">Tur 2 Sonu</div><div style="font-size:12px;color:var(--muted);" data-i18n="s8.st2d">ShiftRows + MixColumns 16/16 baytı etkiler</div></div>
+                <div class="val" data-i18n="s8.st2v">71 / 128 bit (%55.5)</div>
+              </div>
+              <div class="stat-row-card accent-red">
+                <div><div class="lbl" data-i18n="s8.st10t">Tur 10 Çıktısı</div><div style="font-size:12px;color:var(--muted);" data-i18n="s8.st10d">16 baytın tamamı farklı; ideal çığ etkisi</div></div>
+                <div class="val" style="color:var(--diff);" data-i18n="s8.st10v">65 / 128 bit (%50.8)</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 9 -->
+        <section class="slide" data-speaker-tr="1. Konuşmacı · Deşifreleme" data-speaker-en="Speaker 1 · Decryption" data-role="s1"
+          data-note-tr="1. Konuşmacı tekrar devralır: Şifrelemenin tersinin birebir ayna sırasıyla uygulandığını, XOR'un kendi kendinin tersi olduğunu ve çıktıdaki EA 38 5F A9... bloğunun 0. adım sonunda tekrar ARABA haline döndüğünü vurgulayın."
+          data-note-en="Speaker 1 returns: explain the mirrored inverse pipeline, self-inverting XOR, and show how EA 38 5F A9... recovers exact ARABA bytes.">
+          <div class="slide-kicker" data-i18n="s9.kick">08 · Ters Dönüşüm Doğrulaması</div>
+          <h2 class="slide-heading" data-i18n="s9.title">Deşifreleme: Şifreli Metinden Düz Metne Dönüş</h2>
+          <div class="split">
+            <div>
+              <ul class="bullet-list">
+                <li data-i18n="s9.b1"><strong>Ters sıra ve ters operatörler:</strong> Başlangıçta <code>K10</code> ile XOR alınır; ardından her turda <code>InvShiftRows</code> (sağa kaydır) → <code>InvSubBytes</code> → <code>AddRoundKey</code> → <code>InvMixColumns</code> uygulanır.</li>
+                <li data-i18n="s9.b2"><strong>InvMixColumns matrisi:</strong> <code>{02, 03, 01, 01}</code> matrisinin <code>GF(2⁸)</code> üzerindeki cebirsel tersi olan <code>{0E, 0B, 0D, 09}</code> kullanılır.</li>
+                <li data-i18n="s9.b3"><strong>Doğrulama:</strong> Tur 10 çıktısı geri açıldığında her baytın bit düzeyinde birebir aynı başlangıç bloğuna döndüğü kanıtlanır.</li>
+              </ul>
+              <a href="index.html?tab=dec&present=1" class="demo-cta" data-lab-link data-i18n="s9.cta">Deşifreleme akışını aç →</a>
+            </div>
+            <div class="card">
+              <div class="card-title"><span data-i18n="s9.tblTitle">Uçtan Uca Doğrulama Vektörü</span><span class="mono" style="font-size:12px;color:var(--spk2-text);" data-i18n="s9.tblBadge">Kayıpsız geri dönüş</span></div>
+              <table class="data-table mono">
+                <tbody>
+                  <tr><th data-i18n="s9.r1">Düz metin</th><td>ARABA (41 52 41 42 41 00 ...)</td></tr>
+                  <tr><th data-i18n="s9.r2">Gizli anahtar</th><td>2B 7E 15 16 28 AE D2 A6 ... 3C</td></tr>
+                  <tr><th data-i18n="s9.r3">Tur 10 çıktısı</th><td>EA 38 5F A9 15 11 6B 6D 7C 3A EB A0 1F A0 0C C4</td></tr>
+                  <tr class="row-hl"><th data-i18n="s9.r4">Ters adım 10 (Tur 0)</th><td><strong>41 52 41 42 41 00 ... (ARABA)</strong></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 10 -->
+        <section class="slide" data-speaker-tr="Ortak · Canlı Laboratuvar Demosu" data-speaker-en="Joint · Live Lab Demo" data-role="both"
+          data-note-tr="Her iki konuşmacı sırasıyla aşağıdaki 4 canlı demo bağlantısını kullanarak uygulama üzerinde canlı gösterim yapar. Açık tema için projeksiyonda 'T' tuşuna basabilirsiniz."
+          data-note-en="Both speakers use these 4 deep-linked workbench shortcuts for the live demo. Press 'T' at any time for high-contrast projector light theme.">
+          <div class="slide-kicker" data-i18n="s10.kick">09 · Canlı Uygulama Geçişi</div>
+          <h2 class="slide-heading" data-i18n="s10.title">Canlı Laboratuvar Demosu Akışı</h2>
+          <div class="demo-grid">
+            <a href="index.html?tab=prep&present=1" class="demo-card" data-lab-link>
+              <div class="demo-card-meta"><span data-i18n="s10.spk1">1. Konuşmacı</span><span class="mono" data-i18n="s10.tag1">Adım 0</span></div>
+              <h3 data-i18n="s10.c1t">Blok Hazırlama ve Sütun Dizilimi</h3>
+              <p data-i18n="s10.c1d"><code>ARABA</code> vs <code>ARABB</code> karşılaştırmasını, 4×4 sütun-öncelikli yerleşimi ve 2 bitlik başlangıç farkını gösterin.</p>
+            </a>
+            <a href="index.html?tab=key&present=1" class="demo-card" data-lab-link>
+              <div class="demo-card-meta"><span data-i18n="s10.spk1b">1. Konuşmacı</span><span class="mono" data-i18n="s10.tag2">Anahtar Türetme</span></div>
+              <h3 data-i18n="s10.c2t">W[4] Kelimesi ve Key Schedule</h3>
+              <p data-i18n="s10.c2d"><code>W[4]</code> sütununa tıklayarak <code>RotWord → SubWord → Rcon[1]</code> aşamalarını canlı kanıtlayın.</p>
+            </a>
+            <a href="index.html?tab=enc&round=1&present=1" class="demo-card" data-lab-link>
+              <div class="demo-card-meta"><span data-i18n="s10.spk2">2. Konuşmacı</span><span class="mono" data-i18n="s10.tag3">Tur 1 & Tur 2</span></div>
+              <h3 data-i18n="s10.c3t">SubBytes, MixColumns ve Çığ Etkisi</h3>
+              <p data-i18n="s10.c3d">Tur 1'de <code>s[0,0] (6A→02)</code> S-Box kesişimini ve <code>s[0,1]</code> üzerinden <code>0x1B</code> taşma indirgemesini açıp Tur 2'ye geçin.</p>
+            </a>
+            <a href="index.html?tab=dec&round=10&present=1" class="demo-card" data-lab-link>
+              <div class="demo-card-meta"><span data-i18n="s10.spk1c">1. Konuşmacı</span><span class="mono" data-i18n="s10.tag4">Deşifreleme</span></div>
+              <h3 data-i18n="s10.c4t">Ters Dönüşüm Doğrulaması</h3>
+              <p data-i18n="s10.c4d"><code>EA 38 5F A9...</code> şifreli çıktısının ters adımlarla tekrar <code>41 52 41 42 41</code> (ARABA) bloğuna dönüşünü gösterin.</p>
+            </a>
+          </div>
+        </section>
+      </main>
+
+      <div class="speaker-notes" id="speakerNotes">
+        <strong data-i18n="ui.notePrefix">Konuşmacı Notu:</strong> <span id="speakerNoteText"></span>
+      </div>
+
+      <footer class="deck-footer">
+        <div class="footer-hint">
+          <span><kbd>←</kbd> <kbd>→</kbd> <span data-i18n="ui.fSlide">Slayt</span></span>
+          <span><kbd>N</kbd> <span data-i18n="ui.fNote">Konuşmacı Notu</span></span>
+          <span><kbd>T</kbd> <span data-i18n="ui.fTheme">Tema</span></span>
+        </div>
+        <div class="nav-controls">
+          <button type="button" class="nav-btn" id="prevBtn" data-i18n="ui.prev">← Önceki</button>
+          <span class="slide-counter"><span id="curNum">1</span> / <span id="totNum">10</span></span>
+          <button type="button" class="nav-btn" id="nextBtn" data-i18n="ui.next">Sonraki →</button>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+    const EN_MAP = {
+      "ui.notesBtn": "Speaker Notes (N)",
+      "ui.labLink": "Open Live Lab →",
+      "ui.notePrefix": "Speaker Note:",
+      "ui.fSlide": "Slide",
+      "ui.fNote": "Speaker Note",
+      "ui.fTheme": "Theme",
+      "ui.prev": "← Previous",
+      "ui.next": "Next →",
+      "s1.title": "AES-128: Symmetric Block Cipher & Avalanche Effect",
+      "s1.sub": "Zero-dependency pure JavaScript implementation of <code>GF(2⁸)</code> finite-field arithmetic, key expansion, and byte-level state inspection.",
+      "s1.m1v": "128 bits",
+      "s1.m1l": "16-byte block & key",
+      "s1.m2v": "10 rounds",
+      "s1.m2l": "44-word key schedule",
+      "s1.m3v": "50.8%",
+      "s1.m3l": "2-bit diff → 65 bits flipped",
+      "s1.vecTitle": "Sample Vector Summary",
+      "s1.vecBadge": "Column-major 4×4",
+      "s1.r10out": "Round 10 ciphertext:",
+      "s2.kick": "01 · Overview",
+      "s2.title": "Why AES and the 128-Bit Block Structure?",
+      "s2.b1": "<strong>Symmetric key:</strong> Sender and receiver share the same 128-bit (16-byte) secret key; security relies on invertible round layers.",
+      "s2.b2": "<strong>SPN, not Feistel:</strong> Unlike DES, each round transforms <strong>all 16 bytes</strong> simultaneously rather than splitting into halves.",
+      "s2.b3": "<strong>Fixed block size:</strong> Shorter inputs are padded to 16 bytes (<code>0x00</code> or <code>PKCS#7</code>) and mapped into a 4×4 state matrix.",
+      "s2.b4": "<strong>Built from scratch:</strong> All <code>GF(2⁸)</code> multiplications, S-Box matrices, and inverse rounds run without external crypto APIs.",
+      "s2.tblTitle": "AES Variant Comparison",
+      "s2.th1": "Standard",
+      "s2.th2": "Key Size (Nk)",
+      "s2.th3": "Block",
+      "s2.th4": "Rounds",
+      "s2.k128": "128 bits (4 words)",
+      "s2.k192": "192 bits (6 words)",
+      "s2.k256": "256 bits (8 words)",
+      "s2.r10": "10 rounds",
+      "s2.r12": "12 rounds",
+      "s2.r14": "14 rounds",
+      "s3.kick": "02 · Block Preparation",
+      "s3.title": "Step 0: Plaintext to Column-Major State Matrix",
+      "s3.b1": "<strong>ASCII → Hex encoding:</strong> <code>\"ARABA\"</code> converts to bytes <code>41 52 41 42 41</code>.",
+      "s3.b2": "<strong>16-byte padding:</strong> The remaining 11 bytes are padded with <code>00</code> in the walkthrough example.",
+      "s3.b3": "<strong>Column-major placement:</strong> The first 4 bytes fill <strong>Column 0 top-to-bottom</strong>, not Row 0 left-to-right.",
+      "s3.b4": "<strong>Controlled delta:</strong> Comparison input <code>\"ARABB\"</code> differs by only 2 bits in Byte 5 (<code>s[0,1]</code>): <code>0x41 (01000001)</code> vs <code>0x42 (01000010)</code>.",
+      "s3.cta": "Open Step 0 in Live Lab →",
+      "s3.matTitle": "State Matrix Layout (ARABA vs ARABB)",
+      "s3.b1i": "Byte 1 · s[0,0]", "s3.b2i": "Byte 2 · s[1,0]", "s3.b3i": "Byte 3 · s[2,0]", "s3.b4i": "Byte 4 · s[3,0]",
+      "s3.b5i": "Byte 5 · s[0,1]", "s3.b6i": "Byte 6 · s[1,1]", "s3.b7i": "Byte 7 · s[2,1]", "s3.b8i": "Byte 8 · s[3,1]",
+      "s3.b9i": "Byte 9 · s[0,2]", "s3.b10i": "Byte 10 · s[1,2]", "s3.b11i": "Byte 11 · s[2,2]", "s3.b12i": "Byte 12 · s[3,2]",
+      "s3.b13i": "Byte 13 · s[0,3]", "s3.b14i": "Byte 14 · s[1,3]", "s3.b15i": "Byte 15 · s[2,3]", "s3.b16i": "Byte 16 · s[3,3]",
+      "s4.kick": "03 · Key Expansion (Key Schedule)",
+      "s4.title": "From One 16-Byte Key to 44 Key Words",
+      "s4.b1": "<strong>Why 44 words?</strong> Initial key + 10 encryption rounds = 11 round keys. Each 4×4 round key needs 4 columns (words): <code>W[0]..W[43]</code>.",
+      "s4.b2": "<strong>Standard columns:</strong> Indices not divisible by 4 compute only <code>W[i] = W[i-4] ⊕ W[i-1]</code>.",
+      "s4.b3": "<strong>Multiples of 4 (W[4], W[8]...):</strong> Apply <code>RotWord</code> (1-byte left rotate), <code>SubWord</code> (S-Box), and round constant <code>Rcon</code> to break round symmetry.",
+      "s4.cta": "Open Key Schedule →",
+      "s4.tblTitle": "Worked Example: W[4] Word Derivation",
+      "s4.r1": "1. Previous W[3]",
+      "s4.r5": "5. Word W[0]",
+      "s4.r6": "6. Result W[4]",
+      "s5.kick": "04 · Encryption Loop",
+      "s5.title": "Anatomy of an AES Round: Confusion & Diffusion",
+      "s5.p1n": "Non-Linear Substitution",
+      "s5.p1r": "Confusion",
+      "s5.p1d": "Each byte is substituted independently via the 16×16 S-Box lookup table.",
+      "s5.p2n": "Row Rotation",
+      "s5.p2r": "Inter-Column Mixing",
+      "s5.p2d": "Rows 0, 1, 2, and 3 rotate left by 0, 1, 2, and 3 positions respectively.",
+      "s5.p3n": "Column Mixing",
+      "s5.p3r": "Diffusion",
+      "s5.p3d": "Each column multiplies a fixed MDS matrix; a 1-byte change spreads across 4 bytes.",
+      "s5.p4n": "Key Addition",
+      "s5.p4r": "Key Mixing",
+      "s5.p4d": "All 16 state bytes are XORed bitwise with the current round key.",
+      "s5.f1": "<strong style=\"color:var(--text);\">Round 0 (Initial):</strong> Only <code>AddRoundKey(K0)</code>",
+      "s5.f2": "<strong style=\"color:var(--text);\">Rounds 1–9:</strong> All 4 transformations run",
+      "s5.f3": "<strong style=\"color:var(--text);\">Round 10 (Final):</strong> <code>MixColumns</code> omitted (invertible without key, adds no security)",
+      "s6.kick": "05 · Confusion Layer",
+      "s6.title": "SubBytes: S-Box Mathematics Over GF(2⁸)",
+      "s6.b1": "<strong>Why non-linear?</strong> Shifts and XOR alone would let an attacker solve the cipher as a linear system.",
+      "s6.b2": "<strong>Step 1 — Multiplicative inverse:</strong> Compute inverse in <code>GF(2⁸)</code> modulo <code>m(x) = x⁸ + x⁴ + x³ + x + 1</code> (<code>0x11B</code>), with <code>00 → 00</code>.",
+      "s6.b3": "<strong>Step 2 — Affine transform:</strong> Bit rotations plus XOR with <code>0x63</code> eliminate fixed points (<code>S(x) = x</code>).",
+      "s6.cta": "Open Round 1 SubBytes →",
+      "s6.tblTitle": "Live Proof: Round 1 · Cell s[0,0]",
+      "s6.th1": "Stage",
+      "s6.th3": "8-bit Binary",
+      "s6.r1": "1. Input byte",
+      "s6.r2": "2. GF(2⁸) inverse (mod 0x11B)",
+      "s6.r3": "3. Affine + 0x63 XOR",
+      "s6.foot": "Looking up <strong>row 6, column A</strong> in the 16×16 S-Box yields <code>02</code> directly.",
+      "s7.kick": "06 · Diffusion Layer",
+      "s7.title": "ShiftRows & MixColumns: The 0x1B Reduction Rule",
+      "s7.c1t": "ShiftRows · Row Rotation",
+      "s7.c1b": "Cross-column spread",
+      "s7.s0": "<strong>Row 0:</strong> No shift (<code>0</code> bytes)",
+      "s7.s1": "<strong>Row 1:</strong> <code>1</code> byte left (right on inverse)",
+      "s7.s2": "<strong>Row 2:</strong> <code>2</code> bytes left (right on inverse)",
+      "s7.s3": "<strong>Row 3:</strong> <code>3</code> bytes left (right on inverse)",
+      "s7.c1f": "Goal: distribute the 4 bytes of every column across all 4 columns for the next step.",
+      "s7.c2t": "MixColumns · xtime & 0x1B Reduction",
+      "s7.c2b": "Intra-column diffusion",
+      "s7.mds": "MDS Matrix: [02 03 01 01 / 01 02 03 01 / 01 01 02 03 / 03 01 01 02]",
+      "s7.m1": "<strong>01 • b:</strong> Identity (<code>b</code>).",
+      "s7.m2": "<strong>02 • b (xtime):</strong> Shift left 1 bit; if <strong>MSB = 1</strong> (8-bit overflow), XOR with <code>0x1B</code>.",
+      "s7.m3": "<strong>03 • b:</strong> Computed as <code>(02 • b) ⊕ b</code>; all 4 products XOR together.",
+      "s8.kick": "07 · Avalanche Effect",
+      "s8.title": "How Does a 2-Bit Difference Reach the Whole Block in 2 Rounds?",
+      "s8.chartTitle": "ARABA vs ARABB — Flipped Bits per Round",
+      "s8.legend": "-- 50% threshold (64 bits)",
+      "s8.st0t": "Round 0 (Initial)",
+      "s8.st0d": "Only Byte 5 (s[0,1]) differs",
+      "s8.st0v": "2 / 128 bits (1.6%)",
+      "s8.st1t": "End of Round 1",
+      "s8.st1d": "MixColumns spreads diff across Column 1 (4 bytes)",
+      "s8.st1v": "23 / 128 bits (18.0%)",
+      "s8.st2t": "End of Round 2",
+      "s8.st2d": "ShiftRows + MixColumns touch all 16/16 bytes",
+      "s8.st2v": "71 / 128 bits (55.5%)",
+      "s8.st10t": "Round 10 Ciphertext",
+      "s8.st10d": "All 16 bytes changed; ideal cryptographic diffusion",
+      "s8.st10v": "65 / 128 bits (50.8%)",
+      "s9.kick": "08 · Inverse Verification",
+      "s9.title": "Decryption: Recovering Plaintext from Ciphertext",
+      "s9.b1": "<strong>Reversed order & inverse operators:</strong> Starts with <code>K10</code> XOR, then runs <code>InvShiftRows</code> (shift right) → <code>InvSubBytes</code> → <code>AddRoundKey</code> → <code>InvMixColumns</code>.",
+      "s9.b2": "<strong>InvMixColumns matrix:</strong> Uses <code>{0E, 0B, 0D, 09}</code>, the exact algebraic inverse of <code>{02, 03, 01, 01}</code> in <code>GF(2⁸)</code>.",
+      "s9.b3": "<strong>Proof:</strong> Unwinding all 10 rounds restores every plaintext byte bit-for-bit.",
+      "s9.cta": "Open Decryption Flow →",
+      "s9.tblTitle": "End-to-End Verification Vector",
+      "s9.tblBadge": "Lossless recovery",
+      "s9.r1": "Plaintext",
+      "s9.r2": "Secret key",
+      "s9.r3": "Round 10 output",
+      "s9.r4": "Inv Step 10 (Round 0)",
+      "s10.kick": "09 · Live Lab Walkthrough",
+      "s10.title": "Live Workbench Demo Sequence",
+      "s10.spk1": "Speaker 1", "s10.spk1b": "Speaker 1", "s10.spk1c": "Speaker 1",
+      "s10.spk2": "Speaker 2",
+      "s10.tag1": "Step 0", "s10.tag2": "Key Schedule", "s10.tag3": "Rounds 1 & 2", "s10.tag4": "Decryption",
+      "s10.c1t": "Block Formatting & Column Layout",
+      "s10.c1d": "Show <code>ARABA</code> vs <code>ARABB</code>, column-major 4×4 matrix placement, and the 2-bit initial delta.",
+      "s10.c2t": "W[4] Word & Key Expansion",
+      "s10.c2d": "Click <code>W[4]</code> to demonstrate <code>RotWord → SubWord → Rcon[1]</code> live.",
+      "s10.c3t": "SubBytes, MixColumns & Avalanche",
+      "s10.c3d": "In Round 1 inspect <code>s[0,0] (6A→02)</code> S-Box lookup and <code>s[0,1]</code> <code>0x1B</code> reduction, then step to Round 2.",
+      "s10.c4t": "Inverse Pipeline Verification",
+      "s10.c4d": "Show ciphertext <code>EA 38 5F A9...</code> unwinding back into exact bytes <code>41 52 41 42 41</code> (ARABA)."
+    };
+
+    const TR_MAP = {};
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+      TR_MAP[el.dataset.i18n] = el.innerHTML;
+    });
+
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const total = slides.length;
+    let current = 1;
+    let notesVisible = false;
+    let currentLang = "tr";
+
+    document.getElementById("totNum").textContent = total;
+
+    function updateLabLinks() {
+      document.querySelectorAll("a[data-lab-link], #labHeaderLink").forEach(a => {
+        const raw = a.getAttribute("href").split("&lang=")[0];
+        a.setAttribute("href", `${raw}&lang=${currentLang}`);
+      });
+    }
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      localStorage.setItem("aes_theme", theme);
+      const lbl = currentLang === "en"
+        ? (theme === "dark" ? "Light Theme (T)" : "Dark Theme (T)")
+        : (theme === "dark" ? "Açık Tema (T)" : "Koyu Tema (T)");
+      document.getElementById("themeToggleBtn").textContent = lbl;
+    }
+
+    function applyLanguage(lang) {
+      currentLang = lang === "en" ? "en" : "tr";
+      localStorage.setItem("aes_lang", currentLang);
+      document.documentElement.lang = currentLang;
+      document.title = currentLang === "en"
+        ? "AES-128 Presentation — FIPS-197 Block Cipher & Avalanche Effect"
+        : "AES-128 Sunum — FIPS-197 Blok Şifreleme ve Çığ Etkisi";
+
+      document.querySelectorAll(".lang-btn").forEach(b => {
+        const active = b.dataset.lang === currentLang;
+        b.classList.toggle("active", active);
+        b.setAttribute("aria-pressed", String(active));
+      });
+
+      const dict = currentLang === "en" ? EN_MAP : TR_MAP;
+      document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.dataset.i18n;
+        if (dict[key] !== undefined) el.innerHTML = dict[key];
+      });
+
+      const curTheme = document.documentElement.getAttribute("data-theme") || "dark";
+      applyTheme(curTheme);
+      updateLabLinks();
+      showSlide(current);
+    }
+
+    function toggleNotes(force) {
+      notesVisible = typeof force === "boolean" ? force : !notesVisible;
+      document.getElementById("speakerNotes").classList.toggle("visible", notesVisible);
+      document.getElementById("notesToggleBtn").setAttribute("aria-pressed", String(notesVisible));
+    }
+
+    function showSlide(n) {
+      if (n < 1) n = 1;
+      if (n > total) n = total;
+      current = n;
+      slides.forEach((s, i) => s.classList.toggle("active", i === n - 1));
+      const active = slides[n - 1];
+      const role = active.dataset.role || "both";
+      const dot = document.getElementById("speakerDot");
+      dot.className = "dot " + (role === "s1" ? "dot-s1" : role === "s2" ? "dot-s2" : "dot-both");
+      document.getElementById("speakerLabel").textContent = currentLang === "en"
+        ? (active.dataset.speakerEn || "")
+        : (active.dataset.speakerTr || "");
+      document.getElementById("speakerNoteText").textContent = currentLang === "en"
+        ? (active.dataset.noteEn || "")
+        : (active.dataset.noteTr || "");
+      document.getElementById("curNum").textContent = n;
+      document.getElementById("progressBar").style.width = ((n / total) * 100) + "%";
+      document.getElementById("prevBtn").disabled = n === 1;
+      document.getElementById("nextBtn").disabled = n === total;
+    }
+
+    document.querySelectorAll(".lang-btn").forEach(btn => {
+      btn.addEventListener("click", () => applyLanguage(btn.dataset.lang));
+    });
+    document.getElementById("prevBtn").addEventListener("click", () => showSlide(current - 1));
+    document.getElementById("nextBtn").addEventListener("click", () => showSlide(current + 1));
+    document.getElementById("notesToggleBtn").addEventListener("click", () => toggleNotes());
+    document.getElementById("themeToggleBtn").addEventListener("click", () => {
+      const cur = document.documentElement.getAttribute("data-theme");
+      applyTheme(cur === "dark" ? "light" : "dark");
+    });
+
+    document.addEventListener("keydown", e => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") {
+        e.preventDefault();
+        showSlide(current + 1);
+      } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+        e.preventDefault();
+        showSlide(current - 1);
+      } else if (e.key === "n" || e.key === "N") {
+        toggleNotes();
+      } else if (e.key === "t" || e.key === "T") {
+        const cur = document.documentElement.getAttribute("data-theme");
+        applyTheme(cur === "dark" ? "light" : "dark");
+      }
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    const qLang = params.get("lang");
+    const initLang = (qLang === "en" || qLang === "tr") ? qLang : (localStorage.getItem("aes_lang") || "tr");
+    const savedTheme = params.get("theme") || localStorage.getItem("aes_theme") || "dark";
+    applyTheme(savedTheme === "light" ? "light" : "dark");
+    if (params.get("notes") === "1") toggleNotes(true);
+    const qSlide = parseInt(params.get("slide"), 10);
+    if (!Number.isNaN(qSlide)) current = Math.min(Math.max(qSlide, 1), total);
+    applyLanguage(initLang);
+  </script>
+</body>
+</html>

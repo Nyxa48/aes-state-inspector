@@ -6,55 +6,181 @@
 
 <h2 id="english">English</h2>
 
-**AES-State-Inspector** is a zero-dependency interactive cryptographic workbench that implements the **FIPS-197 (Advanced Encryption Standard — Rijndael)** specification at the bit and byte level in pure JavaScript.
+**AES-State-Inspector** is a zero-dependency interactive cryptographic workbench and classroom presentation tool that implements **FIPS-197 (Advanced Encryption Standard — Rijndael)** from scratch in pure JavaScript.
 
-All $GF(2^8)$ finite-field arithmetic, S-Box generation matrices, 44-word Key Schedule expansion, and inverse cipher transformations are implemented from scratch without external cryptographic libraries.
+Rather than relying on external crypto APIs, every $GF(2^8)$ multiplication, S-Box algebraic construction, 44-word Key Schedule expansion, and inverse cipher transformation runs live in the browser with step-by-step inspection. Both the interactive workbench ([index.html](index.html)) and the 10-slide presentation deck ([sunum.html](sunum.html)) support instant **TR / EN** language switching, **Dark / Light (Projector)** themes, and keyboard navigation.
 
-### Key Features
+### How AES-128 Works (Step-by-Step Guide)
 
-- **Step 0 — Block Formatting & Column-Major State Matrix**: Converts ASCII/Hex inputs, pads to 16 bytes, and populates the $4 \times 4$ state matrix in column-major order.
-- **Live Avalanche Effect Comparison**: Encrypts a primary plaintext (`ARABA`) alongside a modified plaintext (`ARABB`) across all 10 rounds, highlighting how a 2-bit input difference propagates via `ShiftRows` and `MixColumns` to flip 65 of 128 bits (50.8%).
-- **Interactive Cell Math Inspector**: Clicking any byte in the $4 \times 4$ matrix reveals its exact step-by-step derivation:
-  - **SubBytes / InvSubBytes**: Multiplicative inverse in $GF(2^8)$ modulo $m(x) = x^8 + x^4 + x^3 + x + 1$ (`0x11B`), affine matrix transformation, and $16 \times 16$ S-Box lookup coordinates.
-  - **ShiftRows / InvShiftRows**: Row offset shift and previous/new byte coordinates.
-  - **MixColumns / InvMixColumns**: MDS matrix multiplication, `xtime` (`0x02`) overflow reduction via XOR with `0x1B` when `MSB = 1`, and 8-bit binary addition breakdown.
-  - **AddRoundKey**: Bitwise XOR between the state byte and round key byte.
-- **Key Schedule (`W[0]..W[43]`)**: Full derivation of all 44 round-key words across 11 rounds, detailing `RotWord`, `SubWord`, and `Rcon` transformations on multiples of 4.
-- **Full Decryption Pipeline**: Verifies round-by-round inverse recovery (`InvShiftRows`, `InvSubBytes`, `AddRoundKey`, `InvMixColumns`) back to the original plaintext.
+#### 1. Step 0 — Padding & Column-Major State Matrix
+AES-128 always encrypts fixed **16-byte (128-bit)** blocks arranged as a $4 \times 4$ **state matrix**. Shorter inputs are padded using either `0x00` zero padding (for clear walkthroughs) or `PKCS#7` (filling $N$ missing bytes with the byte value $N$, or a full 16 bytes of `0x10` when the input is already 16 bytes).
 
-### Default Verification Vector
+A common source of confusion is byte ordering: AES populates the $4 \times 4$ matrix **column by column (column-major)**, not row by row. For `"ARABA"` (`41 52 41 42 41`) vs `"ARABB"` (`41 52 41 42 42`):
 
-- **Plaintext:** `ARABA` (`41 52 41 42 41 00 00 00 00 00 00 00 00 00 00 00`)
-- **Cipher Key (FIPS-197):** `2B 7E 15 16 28 AE D2 A6 AB F7 15 88 09 CF 4F 3C`
-- **Initial AddRoundKey:** `6A 2C 54 54 69 AE D2 A6 AB F7 15 88 09 CF 4F 3C`
-- **Round 1 Output:** `21 2B 8C 61 7D CA CE 0D 66 8A FD 7D CA 8F 20 51`
-- **Round 10 Ciphertext:** `EA 38 5F A9 15 11 6B 6D 7C 3A EB A0 1F A0 0C C4`
+| Row \ Col | Col 0 (`s[r,0]`) | Col 1 (`s[r,1]`) | Col 2 (`s[r,2]`) | Col 3 (`s[r,3]`) |
+| --- | --- | --- | --- | --- |
+| **Row 0** | `41` (`A`) | `41` ≠ `42` (`A` vs `B`) | `00` | `00` |
+| **Row 1** | `52` (`R`) | `00` | `00` | `00` |
+| **Row 2** | `41` (`A`) | `00` | `00` | `00` |
+| **Row 3** | `42` (`B`) | `00` | `00` | `00` |
+
+`0x41` (`01000001`) and `0x42` (`01000010`) differ by **only 2 bits** in Byte 5 (`s[0,1]`).
+
+#### 2. Key Expansion (`W[0]..W[43]`)
+AES-128 runs **Round 0** (initial key whitening) plus **10 cipher rounds**, requiring **11 round keys** (44 32-bit column words `W[0]..W[43]`):
+- `W[0]..W[3]` are copied directly from the 128-bit cipher key.
+- If `i % 4 !== 0`: `W[i] = W[i - 4] ⊕ W[i - 1]`.
+- If `i % 4 === 0`: `W[i] = W[i - 4] ⊕ SubWord(RotWord(W[i - 1])) ⊕ Rcon[i / 4]`, where `RotWord` rotates 1 byte left, `SubWord` applies the S-Box, and `Rcon` breaks inter-round symmetry.
+
+Worked trace for `W[4]` with the FIPS-197 key `2B7E1516 28AED2A6 ABF71588 09CF4F3C`:
+1. `W[3]` = `09 CF 4F 3C`
+2. `RotWord(W[3])` = `CF 4F 3C 09`
+3. `SubWord` = `8A 84 EB 01`
+4. `⊕ Rcon[1] (01 00 00 00)` = `8B 84 EB 01`
+5. `⊕ W[0] (2B 7E 15 16)` = **`A0 FA FE 17`** (`W[4]`)
+
+#### 3. Inside Each Encryption Round (Rounds 1–10)
+1. **SubBytes (Confusion):** Non-linear byte substitution over $GF(2^8)$ modulo the irreducible polynomial $m(x) = x^8 + x^4 + x^3 + x + 1$ (`0x11B`). Each byte takes its multiplicative inverse (with `0x00 → 0x00`), then an affine matrix transform + XOR `0x63` to eliminate fixed points. Example from Round 1 `s[0,0]`: `0x6A` (`01101010`) → inverse `0x91` (`10010001`) → affine + `0x63` = **`0x02`** (S-Box row `6`, col `A`).
+2. **ShiftRows (Cross-Column Mixing):** Row `r` rotates left by `r` bytes (`0, 1, 2, 3`). Without this step, columns would never interact.
+3. **MixColumns (Diffusion):** Each column is multiplied by the fixed MDS matrix `[[02,03,01,01],[01,02,03,01],[01,01,02,03],[03,01,01,02]]` in $GF(2^8)$:
+   - `0x01 • b = b`
+   - `0x02 • b` (`xtime`): left-shift `b` by 1 bit; if the most significant bit (`MSB = 1`) overflows 8 bits, reduce modulo `0x11B` by XORing the lower 8 bits with **`0x1B`**.
+   - `0x03 • b = (0x02 • b) ⊕ b`
+   - *Why is `MixColumns` omitted in Round 10?* Because no key addition follows Round 10, a linear matrix layer could be inverted without knowing the key; omitting it adds zero weakness and keeps encryption and decryption symmetric.
+4. **AddRoundKey (Key Mixing):** Bitwise XOR with the round key (`(A ⊕ K) ⊕ K = A`). Constant-time and self-inverting.
+
+#### 4. Live Avalanche Effect (`ARABA` vs `ARABB`)
+Starting from a **2-bit** difference in Byte 5 (`s[0,1]`), here is how AES-128 diffuses the change across all 10 rounds:
+
+| Stage | Changed Bytes | Flipped Bits | Ratio |
+| --- | --- | --- | --- |
+| Initial (Round 0) | 1 / 16 | 2 / 128 | 1.6% |
+| End of Round 1 (`MixColumns` spreads Col 1) | 4 / 16 | 23 / 128 | 18.0% |
+| End of Round 2 (`ShiftRows` + `MixColumns` hit all cols) | 16 / 16 | 71 / 128 | 55.5% |
+| End of Round 3 | 16 / 16 | 66 / 128 | 51.6% |
+| End of Round 4 | 16 / 16 | 66 / 128 | 51.6% |
+| End of Round 5 | 15 / 16 | 58 / 128 | 45.3% |
+| End of Round 6 | 16 / 16 | 60 / 128 | 46.9% |
+| End of Round 7 | 16 / 16 | 65 / 128 | 50.8% |
+| End of Round 8 | 16 / 16 | 58 / 128 | 45.3% |
+| End of Round 9 | 16 / 16 | 72 / 128 | 56.3% |
+| **End of Round 10 (Ciphertext)** | **16 / 16** | **65 / 128** | **50.8%** |
+
+#### 5. Decryption Pipeline
+Decryption starts with `AddRoundKey(K10)` and applies the inverse operations in reverse order for Rounds 9 down to 0: `InvShiftRows` (shift right `0, 1, 2, 3`) → `InvSubBytes` (inverse S-Box) → `AddRoundKey` → `InvMixColumns` (for Rounds 9..1, using the inverse MDS matrix `{0E, 0B, 0D, 09}`), recovering the exact original plaintext byte for byte.
+
+### Verification Vectors
+
+- **Default Classroom Vector (`ARABA`):**
+  - Plaintext: `41 52 41 42 41 00 00 00 00 00 00 00 00 00 00 00`
+  - Key: `2B 7E 15 16 28 AE D2 A6 AB F7 15 88 09 CF 4F 3C`
+  - Round 10 Ciphertext: `EA 38 5F A9 15 11 6B 6D 7C 3A EB A0 1F A0 0C C4`
+- **NIST FIPS-197 Appendix B Vector:**
+  - Plaintext: `3243F6A8885A308D313198A2E0370734`
+  - Key: `2B7E151628AED2A6ABF7158809CF4F3C`
+  - Ciphertext: `39 25 84 1D 02 DC 09 FB DC 11 85 97 19 6A 0B 32`
+
+### Keyboard Shortcuts & Presentation Mode
+
+- **`1`–`4`:** Switch tabs (`Step 0`, `Encryption`, `Key Schedule`, `Decryption`)
+- **`←` / `→`:** Step through Rounds `0–10` (or words `W[0]..W[43]`, or slides in `sunum.html`)
+- **`P`:** Toggle Presentation Mode (larger projector typography & shortcut bar)
+- **`T`:** Toggle Dark / Light (Projector) theme
+- **`N`:** Toggle collapsible Speaker Notes (`Sunum Notu` / `Speaker Note`)
 
 ---
 
 <h2 id="turkce">Türkçe</h2>
 
-**AES-State-Inspector**, **FIPS-197 (Advanced Encryption Standard — Rijndael)** standardını bit ve bayt düzeyinde simüle etmek, hücre matematiğini doğrulamak ve çığ etkisini (avalanche effect) görselleştirmek amacıyla geliştirilmiş interaktif bir kriptoloji aracıdır.
+**AES-State-Inspector**, **FIPS-197 (Advanced Encryption Standard — Rijndael)** standardını bit ve bayt düzeyinde sıfırdan gerçekleyen, harici kütüphane bağımlılığı olmayan etkileşimli bir kriptoloji laboratuvarı ve sunum aracıdır.
 
-Harici bir şifreleme kütüphanesi kullanılmamıştır; $GF(2^8)$ sonlu cisim aritmetiği, S-Box üretim matrisi, anahtar genişletme (Key Schedule) ve ters dönüşüm adımlarının tamamı saf JavaScript ile sıfırdan gerçeklenmiştir.
+Tüm $GF(2^8)$ sonlu cisim çarpımları, S-Box üretim adımları, 44 kelimelik anahtar türetme (Key Schedule) ve ters deşifreleme adımları tarayıcıda saf JavaScript ile hesaplanır. Hem ana laboratuvar ([index.html](index.html)) hem de 10 slaytlık sunum ([sunum.html](sunum.html)) **TR / EN** dil değişimi, **Koyu / Açık (Projeksiyon)** tema ve klavye kısayollarını destekler.
 
-### Temel Özellikler
+### AES-128 Nasıl Çalışır? (Adım Adım Öğretici Özet)
 
-- **Adım 0 (Blok Hazırlama ve Durum Matrisi):** Düz metnin ASCII ve Hex karşılıklarını çıkarır, 16 bayta tamamlar ve AES standardına uygun olarak $4 \times 4$ durum (state) tablosuna sütun-öncelikli (column-major) dizilimle yerleştirir.
-- **Canlı Çığ Etkisi (Avalanche Effect) Karşılaştırması:** Ana metin (`ARABA`) ile karşılaştırma metnini (`ARABB`) aynı anda şifreler. Girdideki 2 bitlik farkın turlar ilerledikçe `ShiftRows` ve `MixColumns` adımlarıyla tüm matrise nasıl yayıldığını ve 10. tur sonunda 128 bitin 65 bitini (%50.8) nasıl değiştirdiğini canlı olarak işaretler.
-- **Hücre Matematiği Denetçisi:** Matris üzerindeki herhangi bir bayta tıklandığında o hücrenin nasıl hesaplandığını adım adım gösterir:
-  - **SubBytes / InvSubBytes:** $GF(2^8)$ üzerinde $m(x) = x^8 + x^4 + x^3 + x + 1$ ($\text{0x11B}$) indirgenemez polinomuna göre çarpımsal tersini, afin dönüşümünü ve $16 \times 16$ S-Box tablosundaki satır/sütun kesişimini verir.
-  - **ShiftRows / InvShiftRows:** İlgili satırın kaç birim sola veya sağa kaydığını ve baytın eski/yeni koordinatlarını gösterir.
-  - **MixColumns / InvMixColumns:** Seçili sütunun sabit MDS matrisiyle çarpımını, $\text{0x02}$ (`xtime`) adımında 8 bitten taşma (MSB=1) varsa $\text{0x1B}$ ile XOR indirgemesini ve 4 terimin 8-bit ikilik (binary) alt alta toplamını tablo halinde sunar.
-  - **AddRoundKey:** Durum baytı ile tur anahtarı baytının bit düzeyinde XOR işlemini gösterir.
-- **Anahtar Türetme (Key Expansion):** 128-bit başlangıç anahtarından 11 tur için üretilen 44 kelimenin (`W[0]..W[43]`) tamamını listeler; `RotWord`, `SubWord` ve `Rcon` adımlarını açıklar.
-- **Deşifreleme (Ters Dönüşüm):** 10. tur sonunda elde edilen şifreli metnin (`EA 38 5F A9...`) ters adımlarla (`InvShiftRows`, `InvSubBytes`, `AddRoundKey`, `InvMixColumns`) başlangıçtaki düz metne dönüşünü doğrular.
+#### 1. Adım 0 — Blok Dolgusu ve Sütun-Öncelikli Durum Matrisi
+AES-128 veriyi her zaman **16 baytlık (128 bit)** sabit bloklar hâlinde ve $4 \times 4$ **durum (state) matrisi** olarak işler. 16 bayttan kısa girdiler sıfır dolgusu (`0x00`) veya eksik bayt sayısı kadar aynı dolgu değerinin yazıldığı `PKCS#7` ile 16 bayta tamamlanır.
 
-### Dosya Yapısı
+En sık karıştırılan nokta yerleşim sırasıdır: Baytlar matrise satır satır değil **sütun sütun (yukarıdan aşağıya)** yerleştirilir. `ARABA` (`41 52 41 42 41`) ve `ARABB` (`41 52 41 42 42`) karşılaştırmasında:
+
+| Satır \ Sütun | 0. Sütun (`s[r,0]`) | 1. Sütun (`s[r,1]`) | 2. Sütun (`s[r,2]`) | 3. Sütun (`s[r,3]`) |
+| --- | --- | --- | --- | --- |
+| **0. Satır** | `41` (`A`) | `41` ≠ `42` (`A` vs `B`) | `00` | `00` |
+| **1. Satır** | `52` (`R`) | `00` | `00` | `00` |
+| **2. Satır** | `41` (`A`) | `00` | `00` | `00` |
+| **3. Satır** | `42` (`B`) | `00` | `00` | `00` |
+
+`0x41` (`01000001`) ile `0x42` (`01000010`) arasında yalnızca 5. baytta (`s[0,1]`) **2 bit** fark vardır.
+
+#### 2. Anahtar Genişletme (`W[0]..W[43]`)
+Başlangıç adımı (Tur 0) ve 10 şifreleme turu için **11 tur anahtarı** (44 adet 32-bit sütun kelimesi `W[0]..W[43]`) türetilir:
+- `W[0]..W[3]` doğrudan 128-bit başlangıç anahtarından alınır.
+- `i % 4 !== 0` ise: `W[i] = W[i - 4] ⊕ W[i - 1]`.
+- `i % 4 === 0` ise: `W[i] = W[i - 4] ⊕ SubWord(RotWord(W[i - 1])) ⊕ Rcon[i / 4]`.
+
+`2B7E1516 28AED2A6 ABF71588 09CF4F3C` anahtarı için `W[4]` hesabı:
+1. `W[3]` = `09 CF 4F 3C`
+2. `RotWord(W[3])` = `CF 4F 3C 09` (1 bayt sola döndürme)
+3. `SubWord` = `8A 84 EB 01` (S-Box dönüşümü)
+4. `⊕ Rcon[1] (01 00 00 00)` = `8B 84 EB 01`
+5. `⊕ W[0] (2B 7E 15 16)` = **`A0 FA FE 17`** (`W[4]`)
+
+#### 3. Bir Şifreleme Turunun 4 Adımı (Tur 1–10)
+1. **SubBytes (Karışıklık / Confusion):** Her bayt $m(x) = x^8 + x^4 + x^3 + x + 1$ (`0x11B`) indirgenemez polinomu modunda $GF(2^8)$ çarpımsal tersine çevrilir (`0x00 → 0x00`), ardından sabit noktaları önlemek için afin dönüşüm + `0x63` XOR uygulanır. Örnek (Tur 1 `s[0,0]`): `0x6A` → tersi `0x91` → afin + `0x63` = **`0x02`** (S-Box 6. satır, A sütunu).
+2. **ShiftRows (Sütunlar Arası Geçiş):** `r.` satır `r` birim (`0, 1, 2, 3`) sola kaydırılır; böylece sütunlar birbirinden bağımsız kalmaz.
+3. **MixColumns (Yayılma / Diffusion):** Her sütun `[[02,03,01,01],[01,02,03,01],[01,01,02,03],[03,01,01,02]]` MDS matrisiyle $GF(2^8)$ üzerinde çarpılır:
+   - `0x01 • b = b`
+   - `0x02 • b` (`xtime`): 1 bit sola kaydırılır; en soldaki bit (`MSB = 1`) 8 bitten taşarsa `0x11B` indirgemesi için alt 8 bit **`0x1B`** ile XOR'lanır.
+   - `0x03 • b = (0x02 • b) ⊕ b`
+   - *10. turda neden MixColumns yok?* Sonrasında başka anahtar eklenmediği için doğrusal olan `MixColumns` anahtar bilinmeden geri çevrilebilirdi; çıkarılması şifreleme ile deşifrelemeyi simetrik tutar.
+4. **AddRoundKey (Anahtar Mühürleme):** Durum matrisi o turun anahtarıyla bit bazında XOR'lanır (`(A ⊕ K) ⊕ K = A`).
+
+#### 4. Canlı Çığ Etkisi (`ARABA` vs `ARABB`)
+Başlangıçtaki **2 bitlik** farkın 10 tur boyunca tüm matrise yayılması:
+
+| Aşama | Değişen Bayt | Değişen Bit | Oran |
+| --- | --- | --- | --- |
+| Başlangıç (Tur 0) | 1 / 16 | 2 / 128 | %1.6 |
+| Tur 1 Sonu (`MixColumns` 1. sütunu etkiler) | 4 / 16 | 23 / 128 | %18.0 |
+| Tur 2 Sonu (`ShiftRows` + `MixColumns` tüm bloğa yayar) | 16 / 16 | 71 / 128 | %55.5 |
+| Tur 3 Sonu | 16 / 16 | 66 / 128 | %51.6 |
+| Tur 4 Sonu | 16 / 16 | 66 / 128 | %51.6 |
+| Tur 5 Sonu | 15 / 16 | 58 / 128 | %45.3 |
+| Tur 6 Sonu | 16 / 16 | 60 / 128 | %46.9 |
+| Tur 7 Sonu | 16 / 16 | 65 / 128 | %50.8 |
+| Tur 8 Sonu | 16 / 16 | 58 / 128 | %45.3 |
+| Tur 9 Sonu | 16 / 16 | 72 / 128 | %56.3 |
+| **Tur 10 Sonu (Şifreli Çıktı)** | **16 / 16** | **65 / 128** | **%50.8** |
+
+#### 5. Deşifreleme (Ters Dönüşüm)
+`AddRoundKey(K10)` ile başlar; ardından 9'dan 0'a her turda ters adımlar uygulanır: `InvShiftRows` (sağa `0, 1, 2, 3`) → `InvSubBytes` → `AddRoundKey` → `InvMixColumns` (Tur 9..1 için ters `{0E, 0B, 0D, 09}` matrisi).
+
+### Doğrulama Vektörleri
+
+- **Varsayılan Sunum Vektörü (`ARABA`):**
+  - Düz Metin: `41 52 41 42 41 00 00 00 00 00 00 00 00 00 00 00`
+  - Anahtar: `2B 7E 15 16 28 AE D2 A6 AB F7 15 88 09 CF 4F 3C`
+  - Tur 10 Çıktısı: `EA 38 5F A9 15 11 6B 6D 7C 3A EB A0 1F A0 0C C4`
+- **NIST FIPS-197 Appendix B Vektörü:**
+  - Düz Metin: `3243F6A8885A308D313198A2E0370734`
+  - Anahtar: `2B7E151628AED2A6ABF7158809CF4F3C`
+  - Çıktı: `39 25 84 1D 02 DC 09 FB DC 11 85 97 19 6A 0B 32`
+
+### Klavye Kısayolları ve Sunum Modu
+
+- **`1`–`4`:** Sekmeler arası geçiş (`Adım 0`, `Şifreleme`, `Anahtar Türetme`, `Deşifreleme`)
+- **`←` / `→`:** Turlar (`0–10`), kelimeler (`W[0]..W[43]`) veya `sunum.html` slaytları arası geçiş
+- **`P`:** Sunum / Projeksiyon Modunu aç/kapat
+- **`T`:** Koyu / Açık Tema değiştir
+- **`N`:** Konuşmacı / Sunum Notlarını aç/kapat
+
+### Proje Yapısı
 
 ```text
-├── index.html   # Semantik arayüz iskeleti
-├── style.css    # Koyu/Açık tema destekli tablo ve matris stilleri
-├── app.js       # GF(2^8) aritmetiği, AES-128 motoru ve hücre denetçisi
-└── README.md    # Proje dokümantasyonu
+├── index.html        # İnteraktif AES-128 laboratuvarı (TR / EN)
+├── style.css         # Graphite koyu/açık tema, erişilebilirlik ve projeksiyon stilleri
+├── app.js            # GF(2^8) aritmetiği, AES-128 motoru, denetçi ve çoklu dil desteği
+├── sunum.html        # 10 slaytlık 2 kişilik etkileşimli sunum destesi (TR / EN)
+├── SUNUM_REHBERI.md  # 2 kişilik konuşmacı paylaşımı, demo adımları ve soru-cevap rehberi
+└── README.md         # Çift dilli (EN/TR) öğretici proje dokümantasyonu
 ```
