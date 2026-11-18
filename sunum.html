@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="tr" data-theme="dark">
 <head>
   <meta charset="UTF-8">
@@ -119,30 +119,25 @@
       background: var(--panel);
     }
 
-    .speaker-pill {
+    .deck-brand {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      height: 28px;
-      padding: 0 12px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: 500;
-      border: 1px solid var(--border);
-      background: var(--surface-alt);
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 600;
       color: var(--text);
     }
 
-    .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 4px;
-      flex-shrink: 0;
+    .tag-mini {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface-alt);
+      color: var(--text-secondary);
     }
-
-    .dot-s1 { background: var(--accent); }
-    .dot-s2 { background: var(--spk2); }
-    .dot-both { background: linear-gradient(90deg, var(--accent) 50%, var(--spk2) 50%); }
 
     .topbar-actions {
       display: flex;
@@ -728,9 +723,9 @@
   <div class="deck-viewport">
     <div class="slide-deck">
       <header class="deck-topbar">
-        <div class="speaker-pill" id="speakerPill">
-          <span class="dot dot-both" id="speakerDot"></span>
-          <span id="speakerLabel">Ortak Açılış</span>
+        <div class="deck-brand">
+          <span>AES-128</span>
+          <span class="tag-mini">FIPS-197</span>
         </div>
         <div class="topbar-actions">
           <div class="lang-switch" role="group" aria-label="Dil / Language">
@@ -1145,22 +1140,22 @@
           <h2 class="slide-heading" data-i18n="s10.title">Canlı Laboratuvar Demosu Akışı</h2>
           <div class="demo-grid">
             <a href="index.html?tab=prep&present=1" class="demo-card" data-lab-link>
-              <div class="demo-card-meta"><span data-i18n="s10.spk1">1. Konuşmacı</span><span class="mono" data-i18n="s10.tag1">Adım 0</span></div>
+              <div class="demo-card-meta"><span data-i18n="s10.spk1">1. Aşama</span><span class="mono" data-i18n="s10.tag1">Adım 0</span></div>
               <h3 data-i18n="s10.c1t">Blok Hazırlama ve Sütun Dizilimi</h3>
               <p data-i18n="s10.c1d"><code>ARABA</code> vs <code>ARABB</code> karşılaştırmasını, 4×4 sütun-öncelikli yerleşimi ve 2 bitlik başlangıç farkını gösterin.</p>
             </a>
             <a href="index.html?tab=key&present=1" class="demo-card" data-lab-link>
-              <div class="demo-card-meta"><span data-i18n="s10.spk1b">1. Konuşmacı</span><span class="mono" data-i18n="s10.tag2">Anahtar Türetme</span></div>
+              <div class="demo-card-meta"><span data-i18n="s10.spk1b">2. Aşama</span><span class="mono" data-i18n="s10.tag2">Anahtar Türetme</span></div>
               <h3 data-i18n="s10.c2t">W[4] Kelimesi ve Key Schedule</h3>
               <p data-i18n="s10.c2d"><code>W[4]</code> sütununa tıklayarak <code>RotWord → SubWord → Rcon[1]</code> aşamalarını canlı kanıtlayın.</p>
             </a>
             <a href="index.html?tab=enc&round=1&present=1" class="demo-card" data-lab-link>
-              <div class="demo-card-meta"><span data-i18n="s10.spk2">2. Konuşmacı</span><span class="mono" data-i18n="s10.tag3">Tur 1 & Tur 2</span></div>
+              <div class="demo-card-meta"><span data-i18n="s10.spk2">3. Aşama</span><span class="mono" data-i18n="s10.tag3">Tur 1 & Tur 2</span></div>
               <h3 data-i18n="s10.c3t">SubBytes, MixColumns ve Çığ Etkisi</h3>
               <p data-i18n="s10.c3d">Tur 1'de <code>s[0,0] (6A→02)</code> S-Box kesişimini ve <code>s[0,1]</code> üzerinden <code>0x1B</code> taşma indirgemesini açıp Tur 2'ye geçin.</p>
             </a>
             <a href="index.html?tab=dec&round=10&present=1" class="demo-card" data-lab-link>
-              <div class="demo-card-meta"><span data-i18n="s10.spk1c">1. Konuşmacı</span><span class="mono" data-i18n="s10.tag4">Deşifreleme</span></div>
+              <div class="demo-card-meta"><span data-i18n="s10.spk1c">4. Aşama</span><span class="mono" data-i18n="s10.tag4">Deşifreleme</span></div>
               <h3 data-i18n="s10.c4t">Ters Dönüşüm Doğrulaması</h3>
               <p data-i18n="s10.c4d"><code>EA 38 5F A9...</code> şifreli çıktısının ters adımlarla tekrar <code>41 52 41 42 41</code> (ARABA) bloğuna dönüşünü gösterin.</p>
             </a>
@@ -1323,8 +1318,8 @@
       "s9.r4": "Inv Step 10 (Round 0)",
       "s10.kick": "09 · Live Lab Walkthrough",
       "s10.title": "Live Workbench Demo Sequence",
-      "s10.spk1": "Speaker 1", "s10.spk1b": "Speaker 1", "s10.spk1c": "Speaker 1",
-      "s10.spk2": "Speaker 2",
+      "s10.spk1": "Stage 1", "s10.spk1b": "Stage 2", "s10.spk1c": "Stage 4",
+      "s10.spk2": "Stage 3",
       "s10.tag1": "Step 0", "s10.tag2": "Key Schedule", "s10.tag3": "Rounds 1 & 2", "s10.tag4": "Decryption",
       "s10.c1t": "Block Formatting & Column Layout",
       "s10.c1d": "Show <code>ARABA</code> vs <code>ARABB</code>, column-major 4×4 matrix placement, and the 2-bit initial delta.",
@@ -1403,12 +1398,6 @@
       current = n;
       slides.forEach((s, i) => s.classList.toggle("active", i === n - 1));
       const active = slides[n - 1];
-      const role = active.dataset.role || "both";
-      const dot = document.getElementById("speakerDot");
-      dot.className = "dot " + (role === "s1" ? "dot-s1" : role === "s2" ? "dot-s2" : "dot-both");
-      document.getElementById("speakerLabel").textContent = currentLang === "en"
-        ? (active.dataset.speakerEn || "")
-        : (active.dataset.speakerTr || "");
       document.getElementById("speakerNoteText").textContent = currentLang === "en"
         ? (active.dataset.noteEn || "")
         : (active.dataset.noteTr || "");
