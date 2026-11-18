@@ -177,10 +177,14 @@ Başlangıçtaki **2 bitlik** farkın 10 tur boyunca tüm matrise yayılması:
 ### Proje Yapısı
 
 ```text
-├── index.html        # İnteraktif AES-128 laboratuvarı (TR / EN)
-├── style.css         # Graphite koyu/açık tema, erişilebilirlik ve projeksiyon stilleri
-├── app.js            # GF(2^8) aritmetiği, AES-128 motoru, denetçi ve çoklu dil desteği
-├── sunum.html        # 10 slaytlık 2 kişilik etkileşimli sunum destesi (TR / EN)
-├── SUNUM_REHBERI.md  # 2 kişilik konuşmacı paylaşımı, demo adımları ve soru-cevap rehberi
-└── README.md         # Çift dilli (EN/TR) öğretici proje dokümantasyonu
+├── index.html          # İnteraktif AES-128 laboratuvarı (TR / EN)
+├── aes.js              # Saf GF(2^8) aritmetiği, AES-128 motoru ve durum izleme çekirdeği
+├── ui-prefs.js         # Ortak tema, dil, URL yönlendirme ve tarayıcı tercih yardımcısı
+├── app.js              # Laboratuvar arayüzü, olay delegasyonu ve çift dil sözlüğü
+├── tokens.css          # Ortak Koyu / Açık (Projeksiyon) tema değişkenleri ve temel bileşenler
+├── style.css           # Laboratuvara özgü düzen ve Sunum Modu ölçeklendirmesi
+├── sunum.html          # 10 slaytlık etkileşimli sunum destesi (TR / EN)
+├── tests/aes.test.js   # FIPS-197 vektör, çığ etkisi, adım izleme ve sözleşme testleri (`node --test`)
+├── SUNUM_REHBERI.md    # Konuşmacı paylaşımı, demo adımları ve soru-cevap rehberi
+└── README.md           # Çift dilli (EN/TR) öğretici proje dokümantasyonu
 ```

@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="tokens.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,7 +16,7 @@
   <header class="header">
     <div class="header-top">
       <div class="header-title">
-        <h1 id="app-title">AES-128 Simetrik Blok Şifreleme Laboratuvarı</h1>
+        <h1 class="app-heading" id="app-title">AES-128 Simetrik Blok Şifreleme Laboratuvarı</h1>
         <span class="tag">FIPS-197</span>
       </div>
       <div class="header-actions">
@@ -37,26 +38,26 @@
 
     <div class="control-grid">
       <div class="field">
-        <label for="pt1-input" id="lbl-pt1">Ana düz metin (ASCII veya 32 hex)</label>
-        <input type="text" id="pt1-input" value="ARABA" spellcheck="false" aria-describedby="pt1-hint">
+        <label class="field-label" for="pt1-input" id="lbl-pt1">Ana düz metin (ASCII veya 32 hex)</label>
+        <input class="field-control" type="text" id="pt1-input" value="ARABA" spellcheck="false" aria-describedby="pt1-hint">
         <span class="field-hint" id="pt1-hint" aria-live="polite"></span>
       </div>
       <div class="field">
-        <label for="pt2-input" id="lbl-pt2">Karşılaştırma metni (Çığ etkisi)</label>
-        <input type="text" id="pt2-input" value="ARABB" spellcheck="false" aria-describedby="pt2-hint">
+        <label class="field-label" for="pt2-input" id="lbl-pt2">Karşılaştırma metni (Çığ etkisi)</label>
+        <input class="field-control" type="text" id="pt2-input" value="ARABB" spellcheck="false" aria-describedby="pt2-hint">
         <span class="field-hint" id="pt2-hint" aria-live="polite"></span>
       </div>
       <div class="field">
-        <label for="pad-select" id="lbl-pad">Blok dolgusu (16 bayt)</label>
-        <select id="pad-select" aria-describedby="pad-hint">
+        <label class="field-label" for="pad-select" id="lbl-pad">Blok dolgusu (16 bayt)</label>
+        <select class="field-control" id="pad-select" aria-describedby="pad-hint">
           <option value="zero" id="opt-pad-zero" selected>Sıfır dolgusu (0x00)</option>
           <option value="pkcs7" id="opt-pad-pkcs7">PKCS#7 standart dolgusu</option>
         </select>
         <span class="field-hint" id="pad-hint"></span>
       </div>
-      <div class="field key-field">
-        <label for="key-input" id="lbl-key">128-bit gizli anahtar (32 hex)</label>
-        <input type="text" id="key-input" value="2B7E151628AED2A6ABF7158809CF4F3C" spellcheck="false" aria-describedby="key-hint">
+      <div class="field">
+        <label class="field-label" for="key-input" id="lbl-key">128-bit gizli anahtar (32 hex)</label>
+        <input class="field-control" type="text" id="key-input" value="2B7E151628AED2A6ABF7158809CF4F3C" spellcheck="false" aria-describedby="key-hint">
         <span class="field-hint" id="key-hint" aria-live="polite"></span>
       </div>
     </div>
@@ -66,27 +67,49 @@
 
   <nav class="nav-bar" aria-label="Çalışma sekmeleri ve tur seçimi" id="main-nav">
     <div class="nav-top-row">
-      <div class="tabs" role="tablist" id="main-tablist">
+      <div class="tabs" role="tablist">
         <button type="button" class="tab-btn active" id="tab-btn-prep" data-tab="prep" role="tab" aria-selected="true" aria-controls="tab-prep">Adım 0: Blok Hazırlama</button>
         <button type="button" class="tab-btn" id="tab-btn-enc" data-tab="enc" role="tab" aria-selected="false" aria-controls="tab-rounds">Şifreleme (Tur 0–10)</button>
         <button type="button" class="tab-btn" id="tab-btn-key" data-tab="key" role="tab" aria-selected="false" aria-controls="tab-key">Anahtar Türetme</button>
         <button type="button" class="tab-btn" id="tab-btn-dec" data-tab="dec" role="tab" aria-selected="false" aria-controls="tab-rounds">Deşifreleme</button>
       </div>
 
-      <div class="present-bar" id="present-bar" aria-label="Sunum kısayolları">
-        <span class="keycap-hint"><kbd>1</kbd>–<kbd>4</kbd> <span id="kh-tabs">Sekme</span></span>
-        <span class="keycap-hint"><kbd>←</kbd><kbd>→</kbd> <span id="kh-step">Tur / Kelime</span></span>
-        <span class="keycap-hint"><kbd>N</kbd> <span id="kh-notes">Sunum Notu</span></span>
-        <span class="keycap-hint"><kbd>T</kbd> <span id="kh-theme">Tema</span></span>
-        <button type="button" id="toggle-notes-btn" class="compact-btn">Tüm Notları Aç</button>
+      <div class="nav-tools">
+        <div class="marker-group">
+          <button type="button" id="marker-btn" class="header-btn marker-toggle" aria-pressed="false" title="Shift+Tık ile de işaretleyebilirsiniz">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>
+            <span id="marker-btn-label">Tahta İşaretçisi (H)</span>
+          </button>
+          <button type="button" id="clear-pins-btn" class="compact-btn clear-pins-btn" hidden>
+            <span id="clear-pins-label">İşaretleri Temizle</span> (<span id="pin-count">0</span>)
+          </button>
+        </div>
+
+        <div class="present-bar" aria-label="Sunum kısayolları">
+          <span class="keycap-hint"><kbd>1</kbd>–<kbd>4</kbd> <span id="kh-tabs">Sekme</span></span>
+          <span class="keycap-hint"><kbd>←</kbd><kbd>→</kbd> <span id="kh-step">Tur / Kelime</span></span>
+          <span class="keycap-hint"><kbd>P</kbd> <span id="kh-present">Sunum</span></span>
+          <span class="keycap-hint"><kbd>H</kbd> <span id="kh-mark">İşaretçi</span></span>
+          <span class="keycap-hint"><kbd>N</kbd> <span id="kh-notes">Sunum Notu</span></span>
+          <span class="keycap-hint"><kbd>T</kbd> <span id="kh-theme">Tema</span></span>
+          <button type="button" id="toggle-notes-btn" class="compact-btn">Tüm Notları Aç</button>
+        </div>
       </div>
     </div>
 
+    <div class="flow-legend" aria-label="Renk kodları açıklaması">
+      <span class="legend-chip"><span class="legend-dot dot-target"></span><span id="leg-target">Seçili hedef</span></span>
+      <span class="legend-chip"><span class="legend-dot dot-src"></span><span id="leg-src">Kaynak girdi</span></span>
+      <span class="legend-chip"><span class="legend-dot dot-key"></span><span id="leg-key">Anahtar / Sonraki adım</span></span>
+      <span class="legend-chip"><span class="legend-dot dot-diff"></span><span id="leg-diff">Çığ etkisi farkı</span></span>
+      <span class="legend-chip"><span class="legend-dot dot-pin"></span><span id="leg-pin">Tahta işareti (Shift+Tık)</span></span>
+    </div>
+
     <div class="round-controls" id="round-controls">
-      <label class="diff-toggle">
+      <label class="diff-toggle" id="diff-toggle-wrap">
         <input type="checkbox" id="show-diff-chk" checked>
         <span class="diff-dot" aria-hidden="true"></span>
-        <span id="diff-toggle-text"><strong id="diff-label-name">ARABB</strong> farklarını matriste işaretle</span>
+        <span id="diff-toggle-text"><strong>ARABB</strong> farklarını matriste işaretle</span>
       </label>
       <div class="round-buttons" id="round-buttons"></div>
     </div>
@@ -97,7 +120,7 @@
       <div class="guide-strip">
         <div class="guide-box" id="prep-guide"></div>
         <details class="presenter-note" data-note-id="prep">
-          <summary><span class="note-title">Sunum Notu</span> <span class="note-meta" id="prep-note-meta">Konuşmacı 1 · Adım 0 ipuçları</span></summary>
+          <summary><span class="note-title">Sunum Notu</span> <span class="note-meta" id="prep-note-meta">Adım 0 ipuçları</span></summary>
           <div class="note-body" id="prep-note-body"></div>
         </details>
       </div>
@@ -108,7 +131,7 @@
       <div class="guide-strip">
         <div class="guide-box" id="round-guide"></div>
         <details class="presenter-note" data-note-id="round">
-          <summary><span class="note-title">Sunum Notu</span> <span class="note-meta" id="round-note-meta">Konuşmacı 2 · Tur akışı ipuçları</span></summary>
+          <summary><span class="note-title">Sunum Notu</span> <span class="note-meta" id="round-note-meta">Tur akışı ipuçları</span></summary>
           <div class="note-body" id="round-note-body"></div>
         </details>
       </div>
@@ -118,19 +141,19 @@
       <div class="bottom-split">
         <div class="card">
           <div class="card-head">
-            <h2 id="insp-title">Hücre Matematiği Denetçisi</h2>
+            <h2 class="card-title-text" id="insp-title">Hücre Matematiği Denetçisi</h2>
             <span class="coord-badge" id="insp-coord"></span>
           </div>
           <div id="insp-content"></div>
           <details class="presenter-note presenter-note-inline" data-note-id="insp">
-            <summary><span class="note-title">Sunum Notu</span> <span class="note-meta" id="insp-note-meta">Olası soru ve tahta kanıtı</span></summary>
+            <summary><span class="note-title">Sunum Notu</span> <span class="note-meta" id="insp-note-meta">Detay soru &amp; tahta kanıtı</span></summary>
             <div class="note-body" id="insp-note-body"></div>
           </details>
         </div>
 
         <div class="card">
           <div class="card-head">
-            <h2 id="sbox-title">S-Box Arama Tablosu (16×16)</h2>
+            <h2 class="card-title-text" id="sbox-title">S-Box Arama Tablosu (16×16)</h2>
             <span class="muted-note" id="sbox-hint">İlk nibble satır, ikinci nibble sütun</span>
           </div>
           <div id="sbox-grid" class="table-scroll"></div>
@@ -142,21 +165,21 @@
       <div class="guide-strip">
         <div class="guide-box" id="key-guide"></div>
         <details class="presenter-note" data-note-id="key">
-          <summary><span class="note-title">Sunum Notu</span> <span class="note-meta" id="key-note-meta">Konuşmacı 1 · Key Schedule ipuçları</span></summary>
+          <summary><span class="note-title">Sunum Notu</span> <span class="note-meta" id="key-note-meta">Key Schedule ipuçları</span></summary>
           <div class="note-body" id="key-note-body"></div>
         </details>
       </div>
-      <div class="bottom-split">
+      <div class="bottom-split bottom-split-wide">
         <div class="card">
           <div class="card-head">
-            <h2 id="key-table-title">11 Tur Anahtarı (44 Kelime)</h2>
+            <h2 class="card-title-text" id="key-table-title">11 Tur Anahtarı (44 Kelime)</h2>
             <span class="muted-note" id="key-table-hint">Hesabı incelemek için bir W[i] sütunu seçin</span>
           </div>
           <div id="key-schedule-table" class="table-scroll"></div>
         </div>
         <div class="card">
           <div class="card-head">
-            <h2 id="key-insp-title">Seçili Kelime Türetimi</h2>
+            <h2 class="card-title-text" id="key-insp-title">Seçili Kelime Türetimi</h2>
           </div>
           <div id="key-insp-content"></div>
         </div>
@@ -164,6 +187,8 @@
     </section>
   </main>
 
+  <script src="aes.js"></script>
+  <script src="ui-prefs.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
