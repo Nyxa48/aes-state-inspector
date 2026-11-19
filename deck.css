@@ -107,7 +107,7 @@ html, body {
 .slide {
   position: absolute;
   inset: 0;
-  padding: 36px 48px 28px;
+  padding: 24px 48px 64px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -547,13 +547,18 @@ html, body {
 
 .speaker-notes {
   display: none;
-  border-top: 1px solid var(--border);
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 52px;
+  z-index: 20;
+  border-top: 1px solid var(--border-strong);
   background: var(--panel);
   padding: 12px 32px;
   font-size: 13px;
   color: var(--text-secondary);
   line-height: 1.5;
-  flex-shrink: 0;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.18);
 }
 
 .speaker-notes.visible {
@@ -603,6 +608,7 @@ html, body {
   .deck-viewport { padding: 0; }
   .slide-deck { width: 100%; height: 100%; aspect-ratio: auto; border-radius: 0; border: none; }
   .deck-topbar, .deck-footer, .speaker-notes { padding-left: 16px; padding-right: 16px; }
+  .speaker-notes { position: static; box-shadow: none; }
   .slide { padding: 20px; overflow-y: auto; justify-content: flex-start; }
   .split, .split-even, .pipeline-4, .demo-grid, .metrics-row { grid-template-columns: 1fr; }
   .footer-hint { display: none; }

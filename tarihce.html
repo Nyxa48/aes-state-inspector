@@ -25,7 +25,7 @@
             <button type="button" class="lang-btn active" data-lang="tr" aria-pressed="true">TR</button>
             <button type="button" class="lang-btn" data-lang="en" aria-pressed="false">EN</button>
           </div>
-          <button type="button" class="btn-control" id="notesToggleBtn" aria-pressed="false" data-i18n="ui.notesBtn">Sunum Notu (N)</button>
+          <button type="button" class="btn-control" id="notesToggleBtn" aria-pressed="false" data-i18n="ui.notesBtn">Notlar (N)</button>
           <button type="button" class="btn-control" id="themeToggleBtn" data-i18n="ui.themeLight">Açık Tema (T)</button>
           <a href="sunum.html" class="btn-control" data-lab-link data-i18n="ui.techLink">Teknik Sunuma Geç →</a>
           <a href="index.html?present=1" class="btn-control" data-lab-link data-i18n="ui.labLink">Canlı Lab →</a>
@@ -34,8 +34,8 @@
 
       <main class="slides-stage">
         <section class="slide active"
-          data-note-tr="Açılışta AES'in durup dururken icat edilmediğini vurgulayın: 1977'den kalan DES standardının 56-bit anahtarı 1990'ların sonunda kırılabilir hale gelince NIST yeni bir standart arayışına girdi."
-          data-note-en="Open by explaining why AES was needed: DES (1977) used a 56-bit key and 64-bit block, which became vulnerable to brute-force hardware by the late 1990s.">
+          data-note-tr="1977 tarihli DES standardının 56-bit anahtarı 1990'ların sonunda donanım gücüyle kırılabilir hâle gelince NIST, daha uzun anahtarlı ve 128-bit bloklu yeni bir şifreleme standardı için açık çağrı başlattı."
+          data-note-en="Because DES (1977) relied on a 56-bit key that became vulnerable to brute-force hardware in the late 1990s, NIST launched an open call for a 128-bit block cipher standard.">
           <div class="split">
             <div>
               <div class="slide-kicker" data-i18n="h1.kick">01 · Neden Yeni Bir Standart Gerekti? (1977–1997)</div>
@@ -74,8 +74,8 @@
         </section>
 
         <section class="slide"
-          data-note-tr="NIST süreci kapalı kapılar ardında değil, tüm dünyadan kriptografların birbirinin algoritmasını analiz ettiği şeffaf bir yarışma olarak yürütüldü. 15 adaydan 5 finalist kaldı."
-          data-note-en="Emphasize that NIST ran a transparent, public 3-year evaluation: 15 candidates narrowed down to 5 finalists in 1999.">
+          data-note-tr="NIST yarışması kapalı bir seçim yerine küresel kriptografi topluluğunun tüm adayları açıkça test ettiği şeffaf bir eleme süreciyle yürütüldü; 15 adaydan 5 finalist kaldı."
+          data-note-en="NIST ran a transparent 3-year public evaluation where cryptographers worldwide analyzed every submission, narrowing 15 candidates down to 5 finalists in 1999.">
           <div class="slide-kicker" data-i18n="h2.kick">02 · NIST Yarışması (1997–2000)</div>
           <h2 class="slide-heading" data-i18n="h2.title">15 Adaydan 5 Finaliste Şeffaf Eleme</h2>
           <div class="split">
@@ -107,8 +107,8 @@
         </section>
 
         <section class="slide"
-          data-note-tr="İsim hikayesi dikkat çeker: Belçikalı tasarımcılar Vincent Rijmen ve Joan Daemen soyadlarının birleşiminden Rijndael adını verdiler. 2000'de seçildi, 26 Kasım 2001'de FIPS-197 olarak resmileşti."
-          data-note-en="Share the origin of the name (Rijmen + Daemen = Rijndael), selected in October 2000 and standardized as FIPS-197 on November 26, 2001.">
+          data-note-tr="Belçikalı kriptograflar Vincent Rijmen ve Joan Daemen'in soyadlarından türetilen Rijndael, Ekim 2000'de birinci seçildi ve 26 Kasım 2001'de FIPS-197 adıyla resmîleşti."
+          data-note-en="Named after Belgian cryptographers Vincent Rijmen and Joan Daemen, Rijndael was selected in October 2000 and published as FIPS-197 on November 26, 2001.">
           <div class="slide-kicker" data-i18n="h3.kick">03 · Kazanan Tasarım: Rijndael (2000–2001)</div>
           <h2 class="slide-heading" data-i18n="h3.title">Neden Rijndael Seçildi ve FIPS-197 Oldu?</h2>
           <div class="pipeline-4">
@@ -142,8 +142,8 @@
         </section>
 
         <section class="slide"
-          data-note-tr="Hoca 'Rijndael ile AES tamamen aynı mı?' diye sorarsa bu slayt net cevap verir: Rijndael'da blok boyutu da değişkendir, AES ise bloğu 128 bitte sabitler. Ayrıca Intel/AMD AES-NI komutlarıyla donanımda tek komutla çalışır."
-          data-note-en="Clarify the subtle distinction between Rijndael (flexible block sizes) and AES (fixed 128-bit block), plus the impact of AES-NI hardware acceleration.">
+          data-note-tr="Rijndael ailesi değişken blok boyutlarını (128/192/256 bit) desteklerken AES standardı blok boyutunu sabit 128 bit olarak belirler; AES-NI komutları ise tablo arama olmadan sabit zamanlı hız sağlar."
+          data-note-en="While Rijndael supports 128/192/256-bit blocks, AES fixes the block size at 128 bits; modern CPUs execute AES rounds in hardware via AES-NI to prevent timing leaks.">
           <div class="slide-kicker" data-i18n="h4.kick">04 · İnce Ayrıntı ve Donanım Çağı</div>
           <h2 class="slide-heading" data-i18n="h4.title">Rijndael vs AES Farkı ve AES-NI Devrimi</h2>
           <div class="split-even">
@@ -167,8 +167,8 @@
         </section>
 
         <section class="slide"
-          data-note-tr="Tarihçeyi günlük hayatla bağlayıp teknik sunuma ve canlı laboratuvara geçin: şu an bağlandığımız HTTPS, Wi-Fi ve disk şifreleme hep AES ile korunuyor."
-          data-note-en="Connect AES history to everyday systems (TLS, Wi-Fi, disk encryption) and transition cleanly to the technical deck or live workbench.">
+          data-note-tr="AES günümüzde HTTPS (TLS 1.3), Wi-Fi (WPA2/WPA3), tam disk şifreleme (BitLocker/LUKS) ve parola kasaları gibi temel güvenlik protokollerinin çoğunda varsayılan simetrik şifredir."
+          data-note-en="Today AES serves as the default symmetric cipher across TLS 1.3 (HTTPS), Wi-Fi (WPA2/WPA3), full-disk encryption (BitLocker/LUKS), and password vaults.">
           <div class="slide-kicker" data-i18n="h5.kick">05 · Günümüzdeki Yeri ve Geçiş</div>
           <h2 class="slide-heading" data-i18n="h5.title">Bugün AES Nerelerde Kullanılıyor?</h2>
           <div class="demo-grid">
@@ -201,13 +201,13 @@
       </main>
 
       <div class="speaker-notes" id="speakerNotes">
-        <strong data-i18n="ui.notePrefix">Sunum Notu:</strong> <span id="speakerNoteText"></span>
+        <strong data-i18n="ui.notePrefix">Özet Not:</strong> <span id="speakerNoteText"></span>
       </div>
 
       <footer class="deck-footer">
         <div class="footer-hint">
           <span><kbd>←</kbd> <kbd>→</kbd> <span data-i18n="ui.fSlide">Slayt</span></span>
-          <span><kbd>N</kbd> <span data-i18n="ui.fNote">Sunum Notu</span></span>
+          <span><kbd>N</kbd> <span data-i18n="ui.fNote">Notlar</span></span>
           <span><kbd>T</kbd> <span data-i18n="ui.fTheme">Tema</span></span>
         </div>
         <div class="nav-controls">
@@ -227,14 +227,14 @@
     const SLIDE_EN_MAP = {
       "ui.docTitle": "AES History — From DES to FIPS-197",
       "ui.tag": "History · 1977–Present",
-      "ui.notesBtn": "Speaker Notes (N)",
+      "ui.notesBtn": "Notes (N)",
       "ui.themeLight": "Light Theme (T)",
       "ui.themeDark": "Dark Theme (T)",
       "ui.techLink": "Technical Deck →",
       "ui.labLink": "Live Lab →",
-      "ui.notePrefix": "Speaker Note:",
+      "ui.notePrefix": "Key Note:",
       "ui.fSlide": "Slide",
-      "ui.fNote": "Speaker Note",
+      "ui.fNote": "Notes",
       "ui.fTheme": "Theme",
       "ui.prev": "← Previous",
       "ui.next": "Next →",

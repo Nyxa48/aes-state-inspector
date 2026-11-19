@@ -25,7 +25,7 @@
             <button type="button" class="lang-btn active" data-lang="tr" aria-pressed="true">TR</button>
             <button type="button" class="lang-btn" data-lang="en" aria-pressed="false">EN</button>
           </div>
-          <button type="button" class="btn-control" id="notesToggleBtn" aria-pressed="false" data-i18n="ui.notesBtn">Sunum Notu (N)</button>
+          <button type="button" class="btn-control" id="notesToggleBtn" aria-pressed="false" data-i18n="ui.notesBtn">Notlar (N)</button>
           <button type="button" class="btn-control" id="themeToggleBtn" data-i18n="ui.themeLight">Açık Tema (T)</button>
           <a href="tarihce.html" class="btn-control" data-lab-link data-i18n="ui.historyLink">Tarihçe Sunumu</a>
           <a href="index.html?present=1" class="btn-control" data-lab-link data-i18n="ui.labLink">Canlı Laboratuvara Geç →</a>
@@ -34,8 +34,8 @@
 
       <main class="slides-stage">
         <section class="slide active"
-          data-note-tr="Konuyu ve amacı kısaca tanıtın (15 sn). Ardından canlı simülasyonla tüm matematiği göstereceğinizi belirterek 2. slayta geçin."
-          data-note-en="Briefly introduce the project scope (15s) and preview the live workbench walkthrough before moving to Slide 2.">
+          data-note-tr="Bu proje AES-128 algoritmasını harici kütüphane olmadan sıfırdan çalıştırır; tüm sonlu cisim matematiği ve bit değişimleri canlı laboratuvardan incelenebilir."
+          data-note-en="This project implements AES-128 from scratch without external crypto libraries, allowing step-by-step inspection of finite-field math and bit diffusion.">
           <div class="split">
             <div>
               <div class="slide-kicker">FIPS-197 · Advanced Encryption Standard</div>
@@ -94,8 +94,8 @@
         </section>
 
         <section class="slide"
-          data-note-tr="DES'in 56-bit anahtarının günümüzde yetersiz kalmasıyla 2001'de Rijndael'in AES standardı seçildiğini vurgulayın. Sabit 128-bit blok ve 10 turluk SPN yapısını özetleyin."
-          data-note-en="Highlight how 56-bit DES fell to brute force and NIST standardized Rijndael (FIPS-197) in 2001, operating as a 10-round Substitution-Permutation Network on 16-byte blocks.">
+          data-note-tr="56-bit DES kaba kuvvet saldırılarına yenik düştükten sonra NIST 2001'de Rijndael'i AES (FIPS-197) olarak standartlaştırdı; algoritma 16 baytlık bloklar üzerinde 10 turluk SPN yapısıyla çalışır."
+          data-note-en="After 56-bit DES fell to brute-force attacks, NIST standardized Rijndael as AES (FIPS-197) in 2001, operating as a 10-round Substitution-Permutation Network on 16-byte blocks.">
           <div class="slide-kicker" data-i18n="s2.kick">01 · Genel Çerçeve</div>
           <h2 class="slide-heading" data-i18n="s2.title">Neden AES ve 128-Bit Blok Yapısı?</h2>
           <div class="split">
@@ -127,8 +127,8 @@
         </section>
 
         <section class="slide"
-          data-note-tr="Öğrencilerin en çok karıştırdığı noktanın matrise satır satır değil SÜTUN SÜTUN yazım olduğunu belirtin. ARABA ve ARABB farkının sadece 5. baytta (s[0,1]) 2 bit olduğunu gösterin."
-          data-note-en="Emphasize that bytes fill the 4×4 state matrix COLUMN BY COLUMN, not row by row. Point out the 2-bit difference between ARABA and ARABB in Byte 5 (s[0,1]).">
+          data-note-tr="AES durum matrisi satır satır değil sütun sütun (yukarıdan aşağıya) doldurulur; ARABA ve ARABB örnekleri arasındaki fark yalnızca 5. baytta (s[0,1]) 2 bittir."
+          data-note-en="The AES state matrix is populated column by column (top to bottom), not row by row; ARABA and ARABB differ by only 2 bits in Byte 5 (s[0,1]).">
           <div class="slide-kicker" data-i18n="s3.kick">02 · Blok Hazırlama</div>
           <h2 class="slide-heading" data-i18n="s3.title">Adım 0: Metinden Sütun-Öncelikli Durum Matrisine</h2>
           <div class="split">
@@ -176,8 +176,8 @@
         </section>
 
         <section class="slide"
-          data-note-tr="Tek 16 bayt anahtardan 11 adet tur anahtarı (Tur 0 dahil) çıktığını, bunun da 44 sütuna denk geldiğini anlatın. Sağdaki W[4] adımlarını sırayla gösterin."
-          data-note-en="Explain why 11 round keys require 44 words (W[0]..W[43]) and walk through the 6-step W[4] derivation table on the right.">
+          data-note-tr="Tek bir 16 baytlık anahtardan Tur 0 dahil 11 tur anahtarı (44 adet 32-bit sütun kelimesi) türetilir; W[4] örneği 4'ün katı indekslerdeki RotWord → SubWord → Rcon adımlarını gösterir."
+          data-note-en="A single 16-byte key expands into 11 round keys (44 32-bit column words W[0]..W[43]); W[4] illustrates the RotWord → SubWord → Rcon pipeline for multiples of 4.">
           <div class="slide-kicker" data-i18n="s4.kick">03 · Anahtar Genişletme (Key Schedule)</div>
           <h2 class="slide-heading" data-i18n="s4.title">16 Baytlık Anahtardan 44 Kelimelik Anahtar Takvimine</h2>
           <div class="split">
@@ -206,8 +206,8 @@
         </section>
 
         <section class="slide"
-          data-note-tr="Tur 0'da yalnızca AddRoundKey yapıldığını, Tur 1-9'da 4 adımın tamamının uygulandığını, 10. turda ise MixColumns'un çıkarıldığını vurgulayın."
-          data-note-en="Highlight initial AddRoundKey in Round 0, the full 4-stage pipeline in Rounds 1–9, and why MixColumns is omitted in Round 10.">
+          data-note-tr="Tur 0'da yalnızca AddRoundKey uygulanır; Tur 1–9 dört dönüşümün tamamını içerir; 10. turda ise sonrasında anahtar eklenmediği için doğrusal MixColumns katmanı çıkarılır."
+          data-note-en="Round 0 runs only AddRoundKey, Rounds 1–9 apply all four layers, and Round 10 omits MixColumns because a final linear layer without a trailing key adds no security.">
           <div class="slide-kicker" data-i18n="s5.kick">04 · Şifreleme Döngüsü</div>
           <h2 class="slide-heading" data-i18n="s5.title">Bir AES Turunun 4 Adımı: Karışıklık ve Yayılma</h2>
           <div class="pipeline-4">
@@ -246,8 +246,8 @@
         </section>
 
         <section class="slide"
-          data-note-tr="'S-Box rastgele sayılardan mı oluşur?' sorusunun cevabı buradadır. 0x11B polinomunda çarpımsal ters + afin dönüşümle matematiksel olarak türetildiğini belirtin."
-          data-note-en="Explain that the S-Box is algebraically constructed from multiplicative inverses modulo 0x11B plus an affine transform (XOR 0x63), not arbitrary numbers.">
+          data-note-tr="S-Box rastgele sayılardan oluşmaz; her baytın 0x11B polinomu modunda GF(2⁸) çarpımsal tersi alınıp afin dönüşüm ve 0x63 XOR uygulanarak sabit noktasız biçimde üretilir."
+          data-note-en="The S-Box is not an arbitrary lookup table; it is derived algebraically via multiplicative inverse modulo 0x11B plus an affine transform (XOR 0x63) to remove fixed points.">
           <div class="slide-kicker" data-i18n="s6.kick">05 · Karışıklık Katmanı</div>
           <h2 class="slide-heading" data-i18n="s6.title">SubBytes: GF(2⁸) Üzerinde S-Box Matematiği</h2>
           <div class="split">
@@ -277,8 +277,8 @@
         </section>
 
         <section class="slide"
-          data-note-tr="ShiftRows olmadan sütunların birbirinden bağımsız kalacağını açıklayın. MixColumns'da 0x02 ile çarparken MSB=1 ise neden 0x1B ile XOR yapıldığını (0x11B taşmasının alt 8 biti) vurgulayın."
-          data-note-en="Explain how ShiftRows breaks column independence and how xtime (0x02) reduces 8-bit overflow via XOR 0x1B when MSB = 1.">
+          data-note-tr="ShiftRows sütunlar arası bağımsızlığı kırar; MixColumns içinde 0x02 ile çarparken MSB=1 taşması olursa 0x11B indirgemesinin alt 8 biti olan 0x1B ile XOR alınır."
+          data-note-en="ShiftRows breaks column independence, while MixColumns reduces 8-bit overflow during 0x02 multiplication (xtime) via XOR 0x1B whenever MSB = 1.">
           <div class="slide-kicker" data-i18n="s7.kick">06 · Yayılma Katmanı</div>
           <h2 class="slide-heading" data-i18n="s7.title">ShiftRows ve MixColumns: 0x1B Taşma Kuralı</h2>
           <div class="split-even">
@@ -309,8 +309,8 @@
         </section>
 
         <section class="slide"
-          data-note-tr="Bu grafik sunumun odak noktasıdır. Tur 0'da sadece 2 bit (%1.6) olan farkın, Tur 1'de MixColumns ile 23 bite (%18.0), Tur 2'de ise ShiftRows+MixColumns birleşimiyle 71 bite (%55.5) sıçrayıp 16 baytın tamamına yayıldığını gösterin."
-          data-note-en="This chart is the centerpiece. Trace the 2-bit delta (1.6%) jumping to 23 bits (18.0%) after Round 1 MixColumns, then hitting all 16 bytes and 71 bits (55.5%) by Round 2.">
+          data-note-tr="Başlangıçta yalnızca 2 bit (%1.6) olan fark Tur 1 MixColumns ile 23 bite (%18.0), Tur 2 sonunda ise ShiftRows + MixColumns birleşimiyle 71 bite (%55.5) sıçrayarak tüm 16 bayta yayılır."
+          data-note-en="An initial 2-bit delta (1.6%) jumps to 23 bits (18.0%) after Round 1 MixColumns, then spreads across all 16 bytes and flips 71 bits (55.5%) by the end of Round 2.">
           <div class="slide-kicker" data-i18n="s8.kick">07 · Çığ Etkisi (Avalanche Effect)</div>
           <h2 class="slide-heading" data-i18n="s8.title">2 Bitlik Fark 2 Turda Tüm Bloğa Nasıl Yayılır?</h2>
           <div class="split">
@@ -347,8 +347,8 @@
         </section>
 
         <section class="slide"
-          data-note-tr="Şifrelemenin tersinin birebir ayna sırasıyla uygulandığını, XOR'un kendi kendinin tersi olduğunu ve çıktıdaki EA 38 5F A9... bloğunun 0. adım sonunda tekrar ARABA haline döndüğünü vurgulayın."
-          data-note-en="Explain the mirrored inverse pipeline, self-inverting XOR, and show how EA 38 5F A9... recovers exact ARABA bytes.">
+          data-note-tr="Deşifreleme adımları şifrelemenin tam ters sırasıyla ve ters matris/S-Box operatörleriyle çalışır; XOR işlemi kendi kendinin tersi olduğu için EA 38 5F A9... bloğu birebir ARABA metnine döner."
+          data-note-en="Decryption mirrors the cipher in reverse order using inverse operators and self-inverting XOR, recovering the exact ARABA plaintext bytes from EA 38 5F A9...">
           <div class="slide-kicker" data-i18n="s9.kick">08 · Ters Dönüşüm Doğrulaması</div>
           <h2 class="slide-heading" data-i18n="s9.title">Deşifreleme: Şifreli Metinden Düz Metne Dönüş</h2>
           <div class="split">
@@ -375,8 +375,8 @@
         </section>
 
         <section class="slide"
-          data-note-tr="Aşağıdaki 4 canlı demo bağlantısını kullanarak uygulama üzerinde canlı gösterim yapabilirsiniz. Açık tema için projeksiyonda 'T' tuşuna basın."
-          data-note-en="Use these 4 deep-linked workbench shortcuts for the live demo. Press 'T' at any time for high-contrast projector light theme.">
+          data-note-tr="Aşağıdaki kartlar etkileşimli laboratuvarın ilgili bölümünü doğrudan açar; açık tema için projeksiyonda 'T' tuşu kullanılabilir."
+          data-note-en="Each card links directly to that stage inside the interactive workbench; press 'T' at any time for the high-contrast projector light theme.">
           <div class="slide-kicker" data-i18n="s10.kick">09 · Canlı Uygulama Geçişi</div>
           <h2 class="slide-heading" data-i18n="s10.title">Canlı Laboratuvar Demosu Akışı</h2>
           <div class="demo-grid">
@@ -405,13 +405,13 @@
       </main>
 
       <div class="speaker-notes" id="speakerNotes">
-        <strong data-i18n="ui.notePrefix">Sunum Notu:</strong> <span id="speakerNoteText"></span>
+        <strong data-i18n="ui.notePrefix">Özet Not:</strong> <span id="speakerNoteText"></span>
       </div>
 
       <footer class="deck-footer">
         <div class="footer-hint">
           <span><kbd>←</kbd> <kbd>→</kbd> <span data-i18n="ui.fSlide">Slayt</span></span>
-          <span><kbd>N</kbd> <span data-i18n="ui.fNote">Sunum Notu</span></span>
+          <span><kbd>N</kbd> <span data-i18n="ui.fNote">Notlar</span></span>
           <span><kbd>T</kbd> <span data-i18n="ui.fTheme">Tema</span></span>
         </div>
         <div class="nav-controls">
@@ -431,14 +431,14 @@
 
     const SLIDE_EN_MAP = {
       "ui.docTitle": "AES-128 Presentation — FIPS-197 Block Cipher & Avalanche Effect",
-      "ui.notesBtn": "Speaker Notes (N)",
+      "ui.notesBtn": "Notes (N)",
       "ui.themeLight": "Light Theme (T)",
       "ui.themeDark": "Dark Theme (T)",
       "ui.historyLink": "History Deck",
       "ui.labLink": "Open Live Lab →",
-      "ui.notePrefix": "Speaker Note:",
+      "ui.notePrefix": "Key Note:",
       "ui.fSlide": "Slide",
-      "ui.fNote": "Speaker Note",
+      "ui.fNote": "Notes",
       "ui.fTheme": "Theme",
       "ui.prev": "← Previous",
       "ui.next": "Next →",
