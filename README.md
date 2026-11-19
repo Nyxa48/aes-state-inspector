@@ -183,7 +183,10 @@ Başlangıçtaki **2 bitlik** farkın 10 tur boyunca tüm matrise yayılması:
 ├── app.js              # Laboratuvar arayüzü, olay delegasyonu ve çift dil sözlüğü
 ├── tokens.css          # Ortak Koyu / Açık (Projeksiyon) tema değişkenleri ve temel bileşenler
 ├── style.css           # Laboratuvara özgü düzen ve Sunum Modu ölçeklendirmesi
-├── sunum.html          # 10 slaytlık etkileşimli sunum destesi (TR / EN)
+├── sunum.html          # 10 slaytlık teknik AES-128 sunumu (TR / EN)
+├── tarihce.html        # 5 slaytlık kısa AES tarihçesi sunumu (DES → FIPS-197, TR / EN)
+├── deck.css            # Sunum desteleri için ortak 16:9 yerleşim ve bileşen stilleri
+├── deck.js             # Sunum desteleri için ortak gezinme, tema ve dil denetleyicisi
 ├── tests/aes.test.js   # FIPS-197 vektör, çığ etkisi, adım izleme ve sözleşme testleri (`node --test`)
 ├── SUNUM_REHBERI.md    # Konuşmacı paylaşımı, demo adımları ve soru-cevap rehberi
 └── README.md           # Çift dilli (EN/TR) öğretici proje dokümantasyonu

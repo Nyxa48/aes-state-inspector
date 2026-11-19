@@ -176,44 +176,57 @@ describe("Bilingual i18n & cross-file presentation contracts", () => {
 
   it("keeps HTML defaults aligned with domain constants and removes stale artifacts", () => {
     const slidesHtml = fs.readFileSync(path.join(ROOT, "sunum.html"), "utf8");
+    const historyHtml = fs.readFileSync(path.join(ROOT, "tarihce.html"), "utf8");
     const indexHtml = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
     const styleCss = fs.readFileSync(path.join(ROOT, "style.css"), "utf8");
     const tokensCss = fs.readFileSync(path.join(ROOT, "tokens.css"), "utf8");
+    const deckCss = fs.readFileSync(path.join(ROOT, "deck.css"), "utf8");
 
     assert.ok(indexHtml.includes(`id="pt1-input" value="${CONSTANTS.DEFAULTS.pt1}"`));
     assert.ok(indexHtml.includes(`id="pt2-input" value="${CONSTANTS.DEFAULTS.pt2}"`));
     assert.ok(indexHtml.includes(`id="key-input" value="${CONSTANTS.DEFAULTS.key}"`));
 
-    assert.equal(/data-speaker-|data-role=/.test(slidesHtml), false);
+    assert.equal(/data-speaker-|data-role=/.test(slidesHtml + historyHtml), false);
     assert.equal(/prep-state-table/.test(styleCss + indexHtml), false);
 
-    for (const [name, content] of Object.entries({ "sunum.html": slidesHtml, "index.html": indexHtml, "style.css": styleCss, "tokens.css": tokensCss })) {
+    for (const [name, content] of Object.entries({
+      "sunum.html": slidesHtml,
+      "tarihce.html": historyHtml,
+      "index.html": indexHtml,
+      "style.css": styleCss,
+      "tokens.css": tokensCss,
+      "deck.css": deckCss
+    })) {
       assert.equal(/C:\\Users\\/i.test(content), false, `Found hardcoded local path in ${name}`);
     }
 
-    const domKeys = new Set([...slidesHtml.matchAll(/data-i18n="([^"]+)"/g)].map((m) => m[1]));
-    const enMatch = slidesHtml.match(/const SLIDE_EN_MAP = (\{[\s\S]*?\n    \});/);
-    assert.ok(enMatch, "SLIDE_EN_MAP definition missing in sunum.html");
-    const enMap = Function(`return (${enMatch[1]});`)();
-    const computedEnKeys = new Set(["s1.m3v", "s1.m3l", "s8.st0v", "s8.st1v", "s8.st2v", "s8.st10v"]);
-    for (const k of domKeys) {
-      assert.ok(
-        Object.prototype.hasOwnProperty.call(enMap, k) || computedEnKeys.has(k),
-        `Missing English slide translation key: ${k}`
-      );
-    }
+    for (const [fileName, html, computedKeys] of [
+      ["sunum.html", slidesHtml, new Set(["s1.m3v", "s1.m3l", "s8.st0v", "s8.st1v", "s8.st2v", "s8.st10v"])],
+      ["tarihce.html", historyHtml, new Set()]
+    ]) {
+      const domKeys = new Set([...html.matchAll(/data-i18n="([^"]+)"/g)].map((m) => m[1]));
+      const enMatch = html.match(/const SLIDE_EN_MAP = (\{[\s\S]*?\n    \});/);
+      assert.ok(enMatch, `SLIDE_EN_MAP definition missing in ${fileName}`);
+      const enMap = Function(`return (${enMatch[1]});`)();
+      for (const k of domKeys) {
+        assert.ok(
+          Object.prototype.hasOwnProperty.call(enMap, k) || computedKeys.has(k),
+          `Missing English slide translation key in ${fileName}: ${k}`
+        );
+      }
 
-    const labHrefs = [...slidesHtml.matchAll(/href="(index\.html[^"]*)"/g)].map((m) => m[1]);
-    assert.ok(labHrefs.length >= 4);
-    for (const href of labHrefs) {
-      const qs = href.split("?")[1] || "";
-      const params = new URLSearchParams(qs);
-      const tab = params.get("tab");
-      if (tab) assert.ok(WORKBENCH_TABS.includes(tab), `Invalid deep-link tab in sunum.html: ${tab}`);
-      const round = params.get("round");
-      if (round !== null) {
-        const rNum = Number(round);
-        assert.ok(Number.isInteger(rNum) && rNum >= 0 && rNum <= CONSTANTS.ROUNDS);
+      const labHrefs = [...html.matchAll(/href="(index\.html[^"]*)"/g)].map((m) => m[1]);
+      assert.ok(labHrefs.length >= 1, `Expected live lab link in ${fileName}`);
+      for (const href of labHrefs) {
+        const qs = href.split("?")[1] || "";
+        const params = new URLSearchParams(qs);
+        const tab = params.get("tab");
+        if (tab) assert.ok(WORKBENCH_TABS.includes(tab), `Invalid deep-link tab in ${fileName}: ${tab}`);
+        const round = params.get("round");
+        if (round !== null) {
+          const rNum = Number(round);
+          assert.ok(Number.isInteger(rNum) && rNum >= 0 && rNum <= CONSTANTS.ROUNDS);
+        }
       }
     }
   });

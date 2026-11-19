@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="tr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AES Tarihçesi — DES'ten FIPS-197 Standardına Kısa Özet</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="deck.css">
+</head>
+<body>
+  <div class="progress-bar" id="progressBar"></div>
+
+  <div class="deck-viewport">
+    <div class="slide-deck">
+      <header class="deck-topbar">
+        <div class="deck-brand">
+          <span>AES</span>
+          <span class="tag" data-i18n="ui.tag">Tarihçe · 1977–Günümüz</span>
+        </div>
+        <div class="topbar-actions">
+          <div class="lang-switch" role="group" aria-label="Dil / Language">
+            <button type="button" class="lang-btn active" data-lang="tr" aria-pressed="true">TR</button>
+            <button type="button" class="lang-btn" data-lang="en" aria-pressed="false">EN</button>
+          </div>
+          <button type="button" class="btn-control" id="notesToggleBtn" aria-pressed="false" data-i18n="ui.notesBtn">Sunum Notu (N)</button>
+          <button type="button" class="btn-control" id="themeToggleBtn" data-i18n="ui.themeLight">Açık Tema (T)</button>
+          <a href="sunum.html" class="btn-control" data-lab-link data-i18n="ui.techLink">Teknik Sunuma Geç →</a>
+          <a href="index.html?present=1" class="btn-control" data-lab-link data-i18n="ui.labLink">Canlı Lab →</a>
+        </div>
+      </header>
+
+      <main class="slides-stage">
+        <section class="slide active"
+          data-note-tr="Açılışta AES'in durup dururken icat edilmediğini vurgulayın: 1977'den kalan DES standardının 56-bit anahtarı 1990'ların sonunda kırılabilir hale gelince NIST yeni bir standart arayışına girdi."
+          data-note-en="Open by explaining why AES was needed: DES (1977) used a 56-bit key and 64-bit block, which became vulnerable to brute-force hardware by the late 1990s.">
+          <div class="split">
+            <div>
+              <div class="slide-kicker" data-i18n="h1.kick">01 · Neden Yeni Bir Standart Gerekti? (1977–1997)</div>
+              <h1 class="hero-title" data-i18n="h1.title">DES'ten AES'e: Kısa Tarihçe</h1>
+              <p class="hero-sub" data-i18n="h1.sub">1977'de standartlaşan DES'in 56-bit anahtarı işlem gücü artışına yenik düşünce, açık bir uluslararası yarışmayla modern kriptografinin belkemiği olan AES seçildi.</p>
+              <div class="metrics-row">
+                <div class="metric-card">
+                  <div class="metric-val">1977</div>
+                  <div class="metric-lbl" data-i18n="h1.m1l">DES (56-bit anahtar)</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-val" data-i18n="h1.m2v">22 saat</div>
+                  <div class="metric-lbl" data-i18n="h1.m2l">1999'da DES kırılma süresi</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-val">2001</div>
+                  <div class="metric-lbl" data-i18n="h1.m3l">FIPS-197 AES standardı</div>
+                </div>
+              </div>
+            </div>
+            <div class="stat-stack">
+              <div class="stat-row-card accent-red">
+                <div><div class="lbl" data-i18n="h1.c1t">DES (FIPS 46, 1977)</div><div class="stat-sub" data-i18n="h1.c1d">56-bit anahtar (2⁵⁶ olasılık) ve 64-bit blok — 1998'de EFF Deep Crack 56 saatte kırdı.</div></div>
+                <div class="val">56 bit</div>
+              </div>
+              <div class="stat-row-card">
+                <div><div class="lbl" data-i18n="h1.c2t">Triple-DES (3DES) Geçişi</div><div class="stat-sub" data-i18n="h1.c2d">DES'i üç kez çalıştırarak güvenlik sağladı ama yazılımda yavaş kaldı ve 64-bit blok sınırını aşamadı.</div></div>
+                <div class="val" data-i18n="h1.c2v">Yavaş</div>
+              </div>
+              <div class="stat-row-card accent-blue">
+                <div><div class="lbl" data-i18n="h1.c3t">NIST Açık Çağrısı (Ocak 1997)</div><div class="stat-sub" data-i18n="h1.c3d">128-bit blok, 128/192/256-bit anahtar destekleyen, hızlı ve telifsiz yeni algoritma istendi.</div></div>
+                <div class="val">AES</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide"
+          data-note-tr="NIST süreci kapalı kapılar ardında değil, tüm dünyadan kriptografların birbirinin algoritmasını analiz ettiği şeffaf bir yarışma olarak yürütüldü. 15 adaydan 5 finalist kaldı."
+          data-note-en="Emphasize that NIST ran a transparent, public 3-year evaluation: 15 candidates narrowed down to 5 finalists in 1999.">
+          <div class="slide-kicker" data-i18n="h2.kick">02 · NIST Yarışması (1997–2000)</div>
+          <h2 class="slide-heading" data-i18n="h2.title">15 Adaydan 5 Finaliste Şeffaf Eleme</h2>
+          <div class="split">
+            <ul class="bullet-list">
+              <li data-i18n="h2.b1"><strong>1998 — Tur 1 (15 Aday):</strong> Akademi ve endüstriden gönderilen 15 algoritma açık saldırı analizine açıldı.</li>
+              <li data-i18n="h2.b2"><strong>1999 — 5 Finalist:</strong> Güvenlik, hız ve donanım uyumluluğu testlerinden geçen beş tasarım finale kaldı.</li>
+              <li data-i18n="h2.b3"><strong>Değerlendirme ölçütleri:</strong> Kriptanaliz direnci, 8-bit akıllı kartlardan 64-bit işlemcilere kadar performans ve sadelik.</li>
+            </ul>
+            <div class="card">
+              <div class="card-title"><span data-i18n="h2.tblTitle">NIST AES Yarışması Finalistleri</span><span class="card-badge">1999–2000</span></div>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th data-i18n="h2.th1">Algoritma</th>
+                    <th data-i18n="h2.th2">Tasarımcı(lar)</th>
+                    <th data-i18n="h2.th3">Öne Çıkan Yön</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="row-hl"><td><strong>Rijndael</strong></td><td>J. Daemen &amp; V. Rijmen</td><td data-i18n="h2.r1">Hız, düşük bellek, temiz cebir</td></tr>
+                  <tr><td>Serpent</td><td>R. Anderson, E. Biham, L. Knudsen</td><td data-i18n="h2.r2">En yüksek güvenlik marjı (32 tur)</td></tr>
+                  <tr><td>Twofish</td><td>B. Schneier ve ekibi</td><td data-i18n="h2.r3">Esnek anahtar bağımlı S-Box</td></tr>
+                  <tr><td>RC6</td><td>R. Rivest ve ekibi</td><td data-i18n="h2.r4">Veri bağımlı döndürme</td></tr>
+                  <tr><td>MARS</td><td>IBM Ekibi</td><td data-i18n="h2.r5">Karmaşık hibrit yapı</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide"
+          data-note-tr="İsim hikayesi dikkat çeker: Belçikalı tasarımcılar Vincent Rijmen ve Joan Daemen soyadlarının birleşiminden Rijndael adını verdiler. 2000'de seçildi, 26 Kasım 2001'de FIPS-197 olarak resmileşti."
+          data-note-en="Share the origin of the name (Rijmen + Daemen = Rijndael), selected in October 2000 and standardized as FIPS-197 on November 26, 2001.">
+          <div class="slide-kicker" data-i18n="h3.kick">03 · Kazanan Tasarım: Rijndael (2000–2001)</div>
+          <h2 class="slide-heading" data-i18n="h3.title">Neden Rijndael Seçildi ve FIPS-197 Oldu?</h2>
+          <div class="pipeline-4">
+            <div class="pipe-step is-winner">
+              <div class="pipe-num" data-i18n="h3.p1n">Tasarım · Belçika</div>
+              <div class="pipe-name">Joan Daemen &amp; Vincent Rijmen</div>
+              <div class="pipe-desc" data-i18n="h3.p1d"><strong>Rij</strong>men + <strong>Dae</strong>men birleşiminden gelen <em>Rijndael</em>, önceki <em>Square</em> şifresinin geliştirilmiş halidir.</div>
+            </div>
+            <div class="pipe-step">
+              <div class="pipe-num" data-i18n="h3.p2n">Ekim 2000</div>
+              <div class="pipe-name" data-i18n="h3.p2t">NIST Seçimi</div>
+              <div class="pipe-desc" data-i18n="h3.p2d">5 finalist arasında güvenlik, yazılım/donanım hızı ve düşük RAM tüketiminde en dengeli tasarım seçildi.</div>
+            </div>
+            <div class="pipe-step">
+              <div class="pipe-num" data-i18n="h3.p3n">26 Kasım 2001</div>
+              <div class="pipe-name">FIPS-197</div>
+              <div class="pipe-desc" data-i18n="h3.p3d">Resmî ABD federal standardı yayımlandı; telifsiz ve küresel kullanıma açık hâle geldi.</div>
+            </div>
+            <div class="pipe-step">
+              <div class="pipe-num" data-i18n="h3.p4n">Matematiksel Güç</div>
+              <div class="pipe-name">GF(2⁸) &amp; SPN</div>
+              <div class="pipe-desc" data-i18n="h3.p4d">Geniş İz (Wide Trail) stratejisiyle diferansiyel ve lineer kriptanalize karşı kanıtlanabilir direnç sunar.</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="pipeline-foot">
+              <span data-i18n="h3.f1"><strong>Adı neden değişti?</strong> Yarışmayı kazanan <em>Rijndael</em>, standartlaşınca <strong>AES (Advanced Encryption Standard)</strong> adını aldı.</span>
+              <span data-i18n="h3.f2"><strong>Kullanım maliyeti:</strong> Tamamen ücretsiz ve patentsizdir.</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide"
+          data-note-tr="Hoca 'Rijndael ile AES tamamen aynı mı?' diye sorarsa bu slayt net cevap verir: Rijndael'da blok boyutu da değişkendir, AES ise bloğu 128 bitte sabitler. Ayrıca Intel/AMD AES-NI komutlarıyla donanımda tek komutla çalışır."
+          data-note-en="Clarify the subtle distinction between Rijndael (flexible block sizes) and AES (fixed 128-bit block), plus the impact of AES-NI hardware acceleration.">
+          <div class="slide-kicker" data-i18n="h4.kick">04 · İnce Ayrıntı ve Donanım Çağı</div>
+          <h2 class="slide-heading" data-i18n="h4.title">Rijndael vs AES Farkı ve AES-NI Devrimi</h2>
+          <div class="split-even">
+            <div class="card">
+              <div class="card-title"><span data-i18n="h4.c1t">Rijndael ve AES Arasındaki Fark</span><span class="card-badge is-accent">FIPS-197</span></div>
+              <ul class="bullet-list">
+                <li data-i18n="h4.c1b1"><strong>Rijndael:</strong> Hem blok boyutunu hem anahtar boyutunu <code>128</code>, <code>192</code> ve <code>256</code> bit olarak destekler.</li>
+                <li data-i18n="h4.c1b2"><strong>AES standardı:</strong> Blok boyutunu her zaman <strong>128 bitte (4×4 matris)</strong> sabitler; yalnızca anahtar 128/192/256 bit olabilir.</li>
+                <li data-i18n="h4.c1b3"><strong>Tur sayıları:</strong> Anahtar büyüdükçe tur sayısı artar (<code>10</code> / <code>12</code> / <code>14</code> tur).</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="card-title"><span data-i18n="h4.c2t">AES-NI ve Yan Kanal Koruması (2008+)</span><span class="card-badge">CPU Hardware</span></div>
+              <ul class="bullet-list">
+                <li data-i18n="h4.c2b1"><strong>Donanım komutları:</strong> Intel ve AMD işlemcilerdeki <code>AES-NI</code> (<code>AESENC</code>, <code>AESDEC</code>) bir AES turunu tek CPU komutuna indirir.</li>
+                <li data-i18n="h4.c2b2"><strong>Sabit zamanlı güvenlik:</strong> Tablo arama yerine silikon düzeyinde çalıştığı için önbellek zamanlama (cache-timing) saldırılarını önler.</li>
+                <li data-i18n="h4.c2b3"><strong>ARMv8 &amp; mobil:</strong> Günümüz telefon ve sunucularının tamamında donanım hızlandırması standarttır.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide"
+          data-note-tr="Tarihçeyi günlük hayatla bağlayıp teknik sunuma ve canlı laboratuvara geçin: şu an bağlandığımız HTTPS, Wi-Fi ve disk şifreleme hep AES ile korunuyor."
+          data-note-en="Connect AES history to everyday systems (TLS, Wi-Fi, disk encryption) and transition cleanly to the technical deck or live workbench.">
+          <div class="slide-kicker" data-i18n="h5.kick">05 · Günümüzdeki Yeri ve Geçiş</div>
+          <h2 class="slide-heading" data-i18n="h5.title">Bugün AES Nerelerde Kullanılıyor?</h2>
+          <div class="demo-grid">
+            <div class="card">
+              <div class="demo-card-meta"><span data-i18n="h5.g1m">Ağ ve İnternet</span><span class="mono">TLS 1.3 · VPN</span></div>
+              <h3 class="demo-card-title" data-i18n="h5.g1t">HTTPS ve Güvenli İletişim</h3>
+              <p class="demo-card-desc" data-i18n="h5.g1d">Web trafiğinin (<code>AES-GCM</code>), SSH bağlantılarının ve kurumsal VPN tünellerinin büyük çoğunluğu AES ile şifrelenir.</p>
+            </div>
+            <div class="card">
+              <div class="demo-card-meta"><span data-i18n="h5.g2m">Kablosuz Ağlar</span><span class="mono">WPA2 / WPA3</span></div>
+              <h3 class="demo-card-title" data-i18n="h5.g2t">Wi-Fi Güvenliği</h3>
+              <p class="demo-card-desc" data-i18n="h5.g2d">Modern kablosuz ağların tamamında paket bütünlüğü ve gizliliği <code>AES-CCMP</code> veya <code>AES-GCMP</code> ile sağlanır.</p>
+            </div>
+            <div class="card">
+              <div class="demo-card-meta"><span data-i18n="h5.g3m">Depolama</span><span class="mono">BitLocker · LUKS</span></div>
+              <h3 class="demo-card-title" data-i18n="h5.g3t">Tam Disk Şifreleme</h3>
+              <p class="demo-card-desc" data-i18n="h5.g3d">Windows BitLocker, macOS FileVault ve Linux LUKS disk koruması <code>AES-XTS</code> modunu kullanır.</p>
+            </div>
+            <div class="card">
+              <div class="demo-card-meta"><span data-i18n="h5.g4m">Uygulamalar</span><span class="mono" data-i18n="h5.g4r">25+ Yıllık Güven</span></div>
+              <h3 class="demo-card-title" data-i18n="h5.g4t">Arşivler ve Parola Kasaları</h3>
+              <p class="demo-card-desc" data-i18n="h5.g4d">7-Zip, parola yöneticileri ve finansal/devlet sistemleri 20 yılı aşkın süredir kırılmamış olan AES'e güvenir.</p>
+            </div>
+          </div>
+          <div class="cta-row">
+            <a href="sunum.html" class="demo-cta" data-lab-link data-i18n="h5.ctaTech">Teknik AES-128 Sunumuna Geç →</a>
+            <a href="index.html?present=1" class="demo-cta is-secondary" data-lab-link data-i18n="h5.ctaLab">Canlı Laboratuvarı Aç →</a>
+          </div>
+        </section>
+      </main>
+
+      <div class="speaker-notes" id="speakerNotes">
+        <strong data-i18n="ui.notePrefix">Sunum Notu:</strong> <span id="speakerNoteText"></span>
+      </div>
+
+      <footer class="deck-footer">
+        <div class="footer-hint">
+          <span><kbd>←</kbd> <kbd>→</kbd> <span data-i18n="ui.fSlide">Slayt</span></span>
+          <span><kbd>N</kbd> <span data-i18n="ui.fNote">Sunum Notu</span></span>
+          <span><kbd>T</kbd> <span data-i18n="ui.fTheme">Tema</span></span>
+        </div>
+        <div class="nav-controls">
+          <button type="button" class="btn-control" id="prevBtn" data-i18n="ui.prev">← Önceki</button>
+          <span class="slide-counter"><span id="curNum">1</span> / <span id="totNum">5</span></span>
+          <button type="button" class="btn-control" id="nextBtn" data-i18n="ui.next">Sonraki →</button>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <script src="ui-prefs.js"></script>
+  <script src="deck.js"></script>
+  <script>
+    "use strict";
+
+    const SLIDE_EN_MAP = {
+      "ui.docTitle": "AES History — From DES to FIPS-197",
+      "ui.tag": "History · 1977–Present",
+      "ui.notesBtn": "Speaker Notes (N)",
+      "ui.themeLight": "Light Theme (T)",
+      "ui.themeDark": "Dark Theme (T)",
+      "ui.techLink": "Technical Deck →",
+      "ui.labLink": "Live Lab →",
+      "ui.notePrefix": "Speaker Note:",
+      "ui.fSlide": "Slide",
+      "ui.fNote": "Speaker Note",
+      "ui.fTheme": "Theme",
+      "ui.prev": "← Previous",
+      "ui.next": "Next →",
+      "h1.kick": "01 · Why Was a New Standard Needed? (1977–1997)",
+      "h1.title": "From DES to AES: A Brief History",
+      "h1.sub": "As hardware outgrew DES's 56-bit key from 1977, an open international competition selected AES as the backbone of modern symmetric encryption.",
+      "h1.m1l": "DES (56-bit key)",
+      "h1.m2v": "22 hrs",
+      "h1.m2l": "DES broken in 1999",
+      "h1.m3l": "FIPS-197 AES standard",
+      "h1.c1t": "DES (FIPS 46, 1977)",
+      "h1.c1d": "56-bit key (2⁵⁶ possibilities) and 64-bit block — broken by EFF Deep Crack in 56 hours in 1998.",
+      "h1.c2t": "Triple-DES (3DES) Stopgap",
+      "h1.c2d": "Applied DES three times for safety, but stayed slow in software and kept the 64-bit block limit.",
+      "h1.c2v": "Slow",
+      "h1.c3t": "NIST Open Call (Jan 1997)",
+      "h1.c3d": "Requested a fast, royalty-free cipher with a 128-bit block and 128/192/256-bit keys.",
+      "h2.kick": "02 · The NIST Competition (1997–2000)",
+      "h2.title": "Open Evaluation From 15 Candidates to 5 Finalists",
+      "h2.b1": "<strong>1998 — Round 1 (15 Candidates):</strong> 15 submissions from academia and industry were opened to public cryptanalysis.",
+      "h2.b2": "<strong>1999 — 5 Finalists:</strong> Five designs survived security, speed, and hardware-efficiency benchmarks.",
+      "h2.b3": "<strong>Selection criteria:</strong> Resistance to cryptanalysis, performance from 8-bit smartcards to 64-bit CPUs, and clean design.",
+      "h2.tblTitle": "NIST AES Competition Finalists",
+      "h2.th1": "Algorithm",
+      "h2.th2": "Designer(s)",
+      "h2.th3": "Key Strength",
+      "h2.r1": "Speed, tiny RAM footprint, clean algebra",
+      "h2.r2": "Highest safety margin (32 rounds)",
+      "h2.r3": "Flexible key-dependent S-Boxes",
+      "h2.r4": "Data-dependent rotations",
+      "h2.r5": "Complex hybrid structure",
+      "h3.kick": "03 · The Winner: Rijndael (2000–2001)",
+      "h3.title": "Why Rijndael Won and Became FIPS-197",
+      "h3.p1n": "Design · Belgium",
+      "h3.p1d": "Named after <strong>Rij</strong>men + <strong>Dae</strong>men, evolving from their earlier <em>Square</em> block cipher.",
+      "h3.p2n": "Oct 2000",
+      "h3.p2t": "NIST Selection",
+      "h3.p2d": "Chosen among the 5 finalists for the strongest balance of security, speed, and low RAM usage.",
+      "h3.p3n": "Nov 26, 2001",
+      "h3.p3d": "Published as the official US federal standard, royalty-free for worldwide adoption.",
+      "h3.p4n": "Algebraic Strength",
+      "h3.p4d": "Its Wide Trail design yields provable bounds against differential and linear cryptanalysis.",
+      "h3.f1": "<strong>Why the rename?</strong> Once standardized, <em>Rijndael</em> became <strong>AES (Advanced Encryption Standard)</strong>.",
+      "h3.f2": "<strong>Licensing:</strong> Completely free and unpatented worldwide.",
+      "h4.kick": "04 · Key Nuance & Hardware Era",
+      "h4.title": "Rijndael vs AES and the AES-NI Era",
+      "h4.c1t": "Rijndael vs Standard AES",
+      "h4.c1b1": "<strong>Rijndael:</strong> Supports <code>128</code>, <code>192</code>, and <code>256</code>-bit lengths for both block size and key size.",
+      "h4.c1b2": "<strong>AES Standard:</strong> Fixes the block size at <strong>128 bits (4×4 matrix)</strong>; only key sizes vary (128/192/256).",
+      "h4.c1b3": "<strong>Round count:</strong> Longer keys add rounds (<code>10</code> / <code>12</code> / <code>14</code> rounds).",
+      "h4.c2t": "AES-NI & Side-Channel Defense (2008+)",
+      "h4.c2b1": "<strong>Hardware instructions:</strong> Intel and AMD <code>AES-NI</code> (<code>AESENC</code>, <code>AESDEC</code>) execute an AES round in a single CPU instruction.",
+      "h4.c2b2": "<strong>Constant-time security:</strong> Eliminates lookup-table memory accesses, blocking cache-timing attacks.",
+      "h4.c2b3": "<strong>ARMv8 & mobile:</strong> Dedicated AES silicon is standard across modern phones and servers.",
+      "h5.kick": "05 · Modern Adoption & Next Step",
+      "h5.title": "Where Is AES Used Today?",
+      "h5.g1m": "Web & Networking",
+      "h5.g1t": "HTTPS & Secure Tunnels",
+      "h5.g1d": "Powers the vast majority of <code>TLS 1.3</code> web traffic (<code>AES-GCM</code>), SSH sessions, and VPN tunnels.",
+      "h5.g2m": "Wireless",
+      "h5.g2t": "Wi-Fi Security",
+      "h5.g2d": "Protects modern wireless frames via <code>AES-CCMP</code> and <code>AES-GCMP</code>.",
+      "h5.g3m": "Storage",
+      "h5.g3t": "Full-Disk Encryption",
+      "h5.g3d": "Windows BitLocker, macOS FileVault, and Linux LUKS rely on <code>AES-XTS</code>.",
+      "h5.g4m": "Applications",
+      "h5.g4r": "25+ Years Trusted",
+      "h5.g4t": "Archives & Password Vaults",
+      "h5.g4d": "7-Zip, password managers, and government/financial systems trust AES after 25+ years of scrutiny.",
+      "h5.ctaTech": "Continue to Technical AES-128 Deck →",
+      "h5.ctaLab": "Open Live Workbench →"
+    };
+
+    window.DeckController.initDeck({
+      enMap: SLIDE_EN_MAP,
+      trExtra: {
+        "ui.docTitle": "AES Tarihçesi — DES'ten FIPS-197 Standardına Kısa Özet",
+        "ui.themeLight": "Açık Tema (T)",
+        "ui.themeDark": "Koyu Tema (T)"
+      }
+    });
+  </script>
+</body>
+</html>
