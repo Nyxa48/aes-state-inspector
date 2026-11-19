@@ -1,12 +1,13 @@
 (function (root) {
   "use strict";
 
+  // AES-128 temel sabitleri, FIPS-197 polinomsal katsayılar ve hazır test vektörleri
   const CONSTANTS = {
-    ROUNDS: 10,
-    WORDS: 44,
-    POLY_LOW: 0x1b,
-    AFFINE_CONST: 0x63,
-    INV_AFFINE_CONST: 0x05,
+    ROUNDS: 10,                // 128-bit anahtar için toplam şifreleme tur sayısı
+    WORDS: 44,                 // 11 tur × 4 sütun = 44 adet 32-bit anahtar kelimesi (W[0]..W[43])
+    POLY_LOW: 0x1b,            // İndirgenemez polinom x^8 + x^4 + x^3 + x + 1 (0x11B) alt 8 biti
+    AFFINE_CONST: 0x63,        // S-Box afin dönüşüm sabiti (sabit nokta olmamasını sağlar)
+    INV_AFFINE_CONST: 0x05,    // InvS-Box ters afin dönüşüm sabiti
     AFFINE_SHIFTS: [1, 2, 3, 4],
     INV_AFFINE_SHIFTS: [1, 3, 6],
     DEFAULTS: {
@@ -14,6 +15,12 @@
       pt2: "ARABB",
       key: "2B7E151628AED2A6ABF7158809CF4F3C",
       pad: "zero"
+    },
+    PRESETS: {
+      classroom: { pt1: "ARABA", pt2: "ARABB", key: "2B7E151628AED2A6ABF7158809CF4F3C", pad: "zero" },
+      fips197: { pt1: "3243F6A8885A308D313198A2E0370734", pt2: "3243F6A8885A308D313198A2E0370735", key: "2B7E151628AED2A6ABF7158809CF4F3C", pad: "pkcs7" },
+      zeros: { pt1: "00000000000000000000000000000000", pt2: "00000000000000000000000000000001", key: "00000000000000000000000000000000", pad: "zero" },
+      ascii16: { pt1: "KRIPTOLOJI_DERSI", pt2: "KRIPTOLOJI_DERSJ", key: "000102030405060708090A0B0C0D0E0F", pad: "zero" }
     },
     MIX_MATRIX: [
       [0x02, 0x03, 0x01, 0x01],
@@ -36,19 +43,24 @@
     isPrintableAscii: (b) => b >= 32 && b <= 126
   };
 
+  // 16 baytlık doğrusal diziyi 4x4 durum matrisine sütun-öncelikli (column-major) eşler
   const Layout = {
     coord: (idx) => ({ r: idx % 4, c: Math.floor(idx / 4), idx }),
     idx: (r, c) => c * 4 + r,
+    // ShiftRows şifrelemede sola (c+r), deşifrelemede sağa (c-r+4) kaydırır
     shiftSourceCol: (c, r, isEnc) => (isEnc ? (c + r) % 4 : (c - r + 4) % 4)
   };
 
+  // GF(2^8) sonlu cisim aritmetiği (mod 0x11B)
   const GF = {
     rotLeft8(b, k) {
       return ((b << k) | (b >>> (8 - k))) & 0xff;
     },
+    // xtime: Sayıyı 1 bit sola kaydırır; MSB=1 taşması varsa 0x1B ile XOR alır
     xtime(a) {
       return ((a << 1) ^ ((a & 0x80) ? CONSTANTS.POLY_LOW : 0x00)) & 0xff;
     },
+    // İki baytın GF(2^8) polinomsal çarpımı (bit bazlı xtime toplamı)
     mul(a, b) {
       let res = 0;
       let cur = a & 0xff;
@@ -112,18 +124,21 @@
     }
   };
 
+  // 256 elemanlı S-Box, InvS-Box ve tur sabiti (Rcon) tablolarını açılışta cebirsel olarak üretir
   const TABLES = (() => {
     const sbox = new Uint8Array(256);
     const invSbox = new Uint8Array(256);
+    // Rcon[1..10]: 0x01'in GF(2^8) üzerinde her turda xtime ile 2 katı alınarak üretilir (9. turda 0x80 -> 0x1B taşar)
     const rcon = [0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36];
     for (let i = 0; i < 256; i++) {
-      const val = GF.affineForward(GF.inv(i));
+      const val = GF.affineForward(GF.inv(i)); // Önce GF(2^8) çarpımsal tersi, sonra afin dönüşüm
       sbox[i] = val;
-      invSbox[val] = i;
+      invSbox[val] = i;                        // Ters S-Box birebir ters eşleme ile doldurulur
     }
     return { sbox, invSbox, rcon };
   })();
 
+  // Düz metin girdisini (32 hex veya ASCII) 16 baytlık bloğa dönüştürür; eksikse Zero veya PKCS#7 ile doldurur
   function analyzeBlockInput(raw, padMode) {
     const trimmed = String(raw ?? "").trim();
     if (/^[0-9a-fA-F]{32}$/.test(trimmed)) {
@@ -134,11 +149,13 @@
     const bytes = [];
     const cap = Math.min(trimmed.length, 16);
     for (let i = 0; i < cap; i++) bytes.push(trimmed.charCodeAt(i) & 0xff);
+    // PKCS#7 eksik bayt sayısı kadar aynı değeri yazar (örn. 11 eksikse 0x0B); Zero 0x00 doldurur
     const padVal = padMode === "pkcs7" ? (16 - bytes.length) : 0x00;
     while (bytes.length < 16) bytes.push(padVal);
     return { bytes, trimmed, mode: "ascii", charLen: trimmed.length, isTruncated: trimmed.length > 16 };
   }
 
+  // 128-bit anahtar girdisini temizler; 32 hex'ten kısaysa sonunu 00 ile 16 bayta tamamlar
   function analyzeKeyInput(raw) {
     const trimmed = String(raw ?? "").trim();
     const cleanHex = trimmed.replace(/[^0-9a-fA-F]/g, "");
@@ -155,6 +172,7 @@
     };
   }
 
+  // İki 16 baytlık blok arasındaki farklı bayt ve farklı bit (Hamming mesafesi) sayısını hesaplar
   function countBitDiff(a, b) {
     let bits = 0;
     let bytes = 0;
@@ -187,7 +205,9 @@
     return roundIdx === 0 ? "afterKey" : "afterSub";
   }
 
+  // AES-128 çekirdek motoru: anahtar genişletme, 4 tur dönüşümü, şifreleme ve deşifreleme
   const AES = {
+    // 16 baytlık anahtardan 44 kelime (11 tur anahtarı) üretir
     expandKey(key) {
       const W = [];
       const logs = [];
@@ -199,6 +219,7 @@
         const prev = W[i - 1].slice();
         const prev4 = W[i - 4].slice();
         if (i % 4 === 0) {
+          // 4'ün katı indekslerde RotWord -> SubWord -> Rcon XOR -> W[i-4] XOR uygulanır
           const rot = [prev[1], prev[2], prev[3], prev[0]];
           const sub = rot.map((b) => TABLES.sbox[b]);
           const rc = TABLES.rcon[i / 4];
@@ -206,6 +227,7 @@
           W[i] = prev4.map((b, idx) => b ^ rconXor[idx]);
           logs[i] = { type: "rot", i, prev, prev4, rot, sub, rc, rconXor, word: W[i].slice() };
         } else {
+          // Diğer kelimelerde doğrudan W[i-4] XOR W[i-1] yapılır
           W[i] = prev4.map((b, idx) => b ^ prev[idx]);
           logs[i] = { type: "xor", i, prev, prev4, word: W[i].slice() };
         }
@@ -219,11 +241,13 @@
       return { W, logs, roundKeys };
     },
 
+    // 1. SubBytes / InvSubBytes: Her baytı doğrusal olmayan S-Box (veya InvS-Box) değeriyle değiştirir
     subBytes(s, inv = false) {
       const box = inv ? TABLES.invSbox : TABLES.sbox;
       return s.map((b) => box[b]);
     },
 
+    // 2. ShiftRows / InvShiftRows: r. satırı r birim sola (deşifrelemede sağa) döndürerek sütunları karıştırır
     shiftRows(s, inv = false) {
       const out = new Array(16);
       for (let r = 0; r < 4; r++) {
@@ -235,6 +259,7 @@
       return out;
     },
 
+    // 3. MixColumns / InvMixColumns: Her 4 baytlık sütunu GF(2^8) MDS matrisiyle çarparak yayılma (diffusion) sağlar
     mixColumns(s, inv = false) {
       const M = inv ? CONSTANTS.INV_MIX_MATRIX : CONSTANTS.MIX_MATRIX;
       const out = new Array(16);
@@ -250,10 +275,12 @@
       return out;
     },
 
+    // 4. AddRoundKey: Durum matrisini ilgili 16 baytlık tur anahtarıyla bit bazında XOR'lar
     addRoundKey(s, rk) {
       return s.map((b, i) => b ^ rk[i]);
     },
 
+    // Tur 0 AddRoundKey ile başlar; Tur 1..9 tam 4 adım, Tur 10 MixColumns olmadan biter
     encrypt(pt, rks) {
       let state = AES.addRoundKey(pt, rks[0]);
       const rounds = [{
@@ -274,6 +301,7 @@
       return rounds;
     },
 
+    // Deşifreleme Tur 10 anahtarıyla başlar; InvShiftRows -> InvSubBytes -> AddRoundKey -> InvMixColumns sırasıyla iner
     decrypt(ct, rks) {
       let state = AES.addRoundKey(ct, rks[CONSTANTS.ROUNDS]);
       const rounds = [{
@@ -436,6 +464,15 @@
     };
   }
 
+  // Bloktaki tek bir baytın belirtilen bitini ters çevirip 32 karakterlik hex string döndürür (+1 bit çığ etkisi testi)
+  function flipSingleBitHex(rawStr, padMode, byteIndex = 0, bitMask = 0x01) {
+    const bytes = analyzeBlockInput(rawStr, padMode).bytes.slice();
+    const safeIdx = ((byteIndex % 16) + 16) % 16;
+    bytes[safeIdx] = (bytes[safeIdx] ^ bitMask) & 0xff;
+    return bytes.map((b) => Format.hex2(b)).join("");
+  }
+
+  // İki düz metni aynı anahtarla şifreleyip Tur 0..10 arasındaki bayt ve bit farklarını (çığ etkisini) hesaplar
   function computeAvalanche(pt1Raw, pt2Raw, keyRaw, padMode) {
     const pt1Info = analyzeBlockInput(pt1Raw, padMode);
     const pt2Info = analyzeBlockInput(pt2Raw, padMode);
@@ -484,6 +521,7 @@
     normalizeStepKey,
     computeDependencies,
     computeCellTrace,
+    flipSingleBitHex,
     computeAvalanche
   };
 

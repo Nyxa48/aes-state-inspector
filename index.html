@@ -36,6 +36,20 @@
       </div>
     </div>
 
+    <div class="preset-bar">
+      <label class="preset-label" for="preset-select" id="lbl-preset">Hazır Test Vektörü:</label>
+      <select class="field-control preset-select" id="preset-select">
+        <option value="classroom" id="opt-preset-classroom" selected>Sınıf Örneği (ARABA vs ARABB)</option>
+        <option value="fips197" id="opt-preset-fips197">NIST FIPS-197 Appendix B (Resmi Vektör)</option>
+        <option value="zeros" id="opt-preset-zeros">Tümü Sıfır (0x00) + 1-Bit Fark</option>
+        <option value="ascii16" id="opt-preset-ascii16">Tam 16-Bayt ASCII (KRIPTOLOJI_DERSI)</option>
+        <option value="custom" id="opt-preset-custom" hidden>Özel Girdi</option>
+      </select>
+      <button type="button" id="flip-bit-btn" class="compact-btn flip-bit-btn" title="PT1'den yalnızca 1 bit farklı karşılaştırma bloğu üretir">
+        <span id="flip-bit-label">+1 Bit Çevir (PT2)</span>
+      </button>
+    </div>
+
     <div class="control-grid">
       <div class="field">
         <label class="field-label" for="pt1-input" id="lbl-pt1">Ana düz metin (ASCII veya 32 hex)</label>
@@ -88,6 +102,7 @@
         <div class="present-bar" aria-label="Sunum kısayolları">
           <span class="keycap-hint"><kbd>1</kbd>–<kbd>4</kbd> <span id="kh-tabs">Sekme</span></span>
           <span class="keycap-hint"><kbd>←</kbd><kbd>→</kbd> <span id="kh-step">Tur / Kelime</span></span>
+          <span class="keycap-hint"><kbd>↑</kbd><kbd>↓</kbd> <span id="kh-substep">Adım</span></span>
           <span class="keycap-hint"><kbd>P</kbd> <span id="kh-present">Sunum</span></span>
           <span class="keycap-hint"><kbd>H</kbd> <span id="kh-mark">İşaretçi</span></span>
           <span class="keycap-hint"><kbd>N</kbd> <span id="kh-notes">Sunum Notu</span></span>
@@ -112,6 +127,11 @@
         <span id="diff-toggle-text"><strong>ARABB</strong> farklarını matriste işaretle</span>
       </label>
       <div class="round-buttons" id="round-buttons"></div>
+      <div class="step-nav-group" id="step-nav-group">
+        <button type="button" id="step-prev-btn" class="compact-btn">‹ Adım</button>
+        <button type="button" id="step-next-btn" class="compact-btn">Adım ›</button>
+        <button type="button" id="play-btn" class="compact-btn play-btn" aria-pressed="false">▶ Oynat</button>
+      </div>
     </div>
   </nav>
 

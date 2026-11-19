@@ -20,6 +20,7 @@ const {
   getRoundSteps,
   normalizeStepKey,
   computeCellTrace,
+  flipSingleBitHex,
   computeAvalanche
 } = Core;
 
@@ -62,6 +63,17 @@ describe("AES-128 FIPS-197 cryptographic vectors", () => {
     assert.equal(av.inDiff.bits, 2);
     assert.deepEqual(av.roundDiffs.map((d) => d.bits), [2, 23, 71, 66, 66, 58, 60, 65, 58, 72, 65]);
     assert.equal(Format.hexStr(av.enc1[10].afterKey), "EA 38 5F A9 15 11 6B 6D 7C 3A EB A0 1F A0 0C C4");
+  });
+
+  it("supports presets and single-bit flip helper", () => {
+    const fips = CONSTANTS.PRESETS.fips197;
+    const avFips = computeAvalanche(fips.pt1, fips.pt2, fips.key, fips.pad);
+    assert.equal(Format.hexStr(avFips.enc1[10].afterKey), "39 25 84 1D 02 DC 09 FB DC 11 85 97 19 6A 0B 32");
+    assert.equal(avFips.inDiff.bits, 1);
+
+    const flippedHex = flipSingleBitHex("ARABA", "zero", 0, 0x01);
+    const avFlip = computeAvalanche("ARABA", flippedHex, CONSTANTS.DEFAULTS.key, "zero");
+    assert.equal(avFlip.inDiff.bits, 1);
   });
 });
 

@@ -3,7 +3,7 @@
 const Core = typeof window !== "undefined" ? window.AESCore : require("./aes.js");
 const Prefs = typeof window !== "undefined" ? window.UIPrefs : require("./ui-prefs.js");
 
-const { CONSTANTS, Format, Layout, TABLES, AES, countBitDiff, getRoundSteps, normalizeStepKey, computeDependencies, computeCellTrace, computeAvalanche } = Core;
+const { CONSTANTS, Format, Layout, TABLES, AES, analyzeBlockInput, countBitDiff, getRoundSteps, normalizeStepKey, computeDependencies, computeCellTrace, flipSingleBitHex, computeAvalanche } = Core;
 const { hex2, bin8, hexStr, isPrintableAscii } = Format;
 
 const WORKBENCH_TABS = ["prep", "enc", "key", "dec"];
@@ -40,6 +40,14 @@ const I18N = {
     rolePin: "İŞARET",
     lblPt1: "Ana düz metin (ASCII veya 32 hex)",
     lblPt2: "Karşılaştırma metni (Çığ etkisi)",
+    lblPreset: "Hazır Test Vektörü:",
+    optPresetClassroom: "Sınıf Örneği (ARABA vs ARABB)",
+    optPresetFips197: "NIST FIPS-197 Appendix B (Resmi Vektör)",
+    optPresetZeros: "Tümü Sıfır (0x00) + 1-Bit Fark",
+    optPresetAscii16: "Tam 16-Bayt ASCII (KRIPTOLOJI_DERSI)",
+    optPresetCustom: "Özel Girdi",
+    flipBitLabel: "+1 Bit Çevir (PT2)",
+    flipBitTitle: "PT1'den yalnızca 1 bit farklı karşılaştırma bloğu üretir",
     lblPad: "Blok dolgusu (16 bayt)",
     optZero: "Sıfır dolgusu (0x00)",
     optPkcs7: "PKCS#7 standart dolgusu",
@@ -59,10 +67,15 @@ const I18N = {
     tabDec: "Deşifreleme",
     khTabs: "Sekme",
     khStep: "Tur / Kelime",
+    khSubstep: "Adım",
     khPresent: "Sunum",
     khMark: "İşaretçi",
     khNotes: "Notlar",
     khTheme: "Tema",
+    stepPrevLabel: "‹ Adım",
+    stepNextLabel: "Adım ›",
+    playStartLabel: "▶ Oynat",
+    playPauseLabel: "⏸ Durdur",
     notesOpenAll: "Tüm Notları Aç",
     notesCloseAll: "Notları Kapat",
     diffToggle: (name) => `<strong>${name}</strong> farklarını matriste işaretle`,
@@ -74,7 +87,8 @@ const I18N = {
     prepGuide: "<strong>Blok hazırlama özeti:</strong> Giriş metni ASCII baytlarına dönüştürülür, seçilen dolgu yöntemiyle 16 bayta (128 bit) tamamlanır ve 4×4 durum matrisine sütun-öncelikli (column-major) sırayla yerleştirilir.",
     prepNotes: `<ul>
       <li><strong>Sütun-öncelikli dizilim:</strong> İlk dört bayt (<code>A R A B</code>) birinci satıra değil, birinci sütuna yukarıdan aşağıya yazılır. 5. bayt olan ikinci <code>A</code> ise <code>s[0,1]</code> hücresine geçer.</li>
-      <li><strong>2 bitlik fark vurgusu:</strong> <code>A</code> (<code>0x41 = 01000001</code>) ile <code>B</code> (<code>0x42 = 01000010</code>) arasında yalnızca 2 bit fark vardır; sağdaki çığ etkisi tablosu bu farkın 2. tur sonunda tüm 16 bayta yayıldığını gösterir.</li>
+      <li><strong>Tek-bit çığ etkisi ve canlı grafik:</strong> <code>+1 Bit Çevir</code> butonuyla 128 bitten yalnızca 1 bit (%0,8) değiştirildiğinde bile SVG grafikte 2. turdan itibaren ~%50 bit farkına ulaşıldığı görülür.</li>
+      <li><strong>Resmi doğrulama:</strong> Üstteki seçiciden <code>NIST FIPS-197 Appendix B</code> seçilerek standarttaki <code>39 25 84 1D ...</code> çıktısı tek tıkla doğrulanabilir.</li>
     </ul>`,
     keyGuide: "<strong>Anahtar genişletme mantığı:</strong> 16 baytlık başlangıç anahtarından 11 tur için toplam 44 adet 32-bit kelime (<code>W[0]..W[43]</code>) üretilir. İndeksi 4'ün katı olan kelimelerde sırasıyla <code>RotWord</code>, <code>SubWord</code> ve <code>Rcon</code> XOR işlemleri uygulanır.",
     keyNotes: `<ul>
@@ -113,6 +127,8 @@ const I18N = {
       `<strong>Şu an seçili · ${idx + 1}. Bayt → s[${r},${c}]:</strong> Sütun-öncelikli kural gereği <code>satır = ${idx} % 4 = ${r}</code> ve <code>sütun = ⌊${idx} / 4⌋ = ${c}</code> konumuna yerleşir. Ana metin değeri <code>${ch1}</code> (<code>0x${hex1}</code>)${isDiff ? `; karşılaştırma metnindeki <code>${ch2}</code> (<code>0x${hex2}</code>) ile burada <strong>${diffBits} bitlik</strong> başlangıç farkı oluşur` : `, karşılaştırma metniyle aynıdır`}.`,
     prepAvalTitle: "3. Tur bazlı çığ etkisi",
     prepAvalBadge: "Bit yayılma hızı",
+    avalChartLabel: "Tur 0'dan Tur 10'a değişen bit yüzdesi grafiği",
+    avalHalfLabel: "%50 ideal",
     colStage: "Aşama",
     colChangedBytes: "Değişen bayt",
     colChangedBits: "Değişen bit oranı",
@@ -258,6 +274,14 @@ const I18N = {
     rolePin: "PIN",
     lblPt1: "Primary plaintext (ASCII or 32 hex)",
     lblPt2: "Comparison plaintext (Avalanche effect)",
+    lblPreset: "Test Vector Preset:",
+    optPresetClassroom: "Classroom Example (ARABA vs ARABB)",
+    optPresetFips197: "NIST FIPS-197 Appendix B (Official)",
+    optPresetZeros: "All Zeroes (0x00) + 1-Bit Diff",
+    optPresetAscii16: "Full 16-Byte ASCII (KRIPTOLOJI_DERSI)",
+    optPresetCustom: "Custom Input",
+    flipBitLabel: "+1 Bit Flip (PT2)",
+    flipBitTitle: "Generates a comparison block differing by exactly 1 bit from PT1",
     lblPad: "Block padding (16 bytes)",
     optZero: "Zero padding (0x00)",
     optPkcs7: "PKCS#7 standard padding",
@@ -277,10 +301,15 @@ const I18N = {
     tabDec: "Decryption",
     khTabs: "Tab",
     khStep: "Round / Word",
+    khSubstep: "Step",
     khPresent: "Present",
     khMark: "Highlighter",
     khNotes: "Notes",
     khTheme: "Theme",
+    stepPrevLabel: "‹ Step",
+    stepNextLabel: "Step ›",
+    playStartLabel: "▶ Play",
+    playPauseLabel: "⏸ Pause",
     notesOpenAll: "Open All Notes",
     notesCloseAll: "Close Notes",
     diffToggle: (name) => `Highlight <strong>${name}</strong> differences in matrices`,
@@ -292,7 +321,8 @@ const I18N = {
     prepGuide: "<strong>Block formatting summary:</strong> Plaintext is converted to ASCII bytes, padded to 16 bytes (128 bits) using the selected scheme, and loaded into the 4×4 state matrix in column-major order.",
     prepNotes: `<ul>
       <li><strong>Column-major layout:</strong> The first four bytes (<code>A R A B</code>) populate Column 0 from top to bottom rather than Row 0. The 5th byte (<code>A</code>) lands at <code>s[0,1]</code>.</li>
-      <li><strong>2-bit input delta:</strong> <code>A</code> (<code>0x41 = 01000001</code>) and <code>B</code> (<code>0x42 = 01000010</code>) differ by only 2 bits; the avalanche table on the right tracks how that expands across all 16 bytes by the end of Round 2.</li>
+      <li><strong>Single-bit avalanche &amp; live chart:</strong> Using <code>+1 Bit Flip</code> changes only 1 out of 128 bits (0.8%), yet the live SVG chart shows diffusion reaching ~50% from Round 2 onward.</li>
+      <li><strong>Official verification:</strong> Selecting <code>NIST FIPS-197 Appendix B</code> from the preset menu lets you verify the published <code>39 25 84 1D ...</code> ciphertext in one click.</li>
     </ul>`,
     keyGuide: "<strong>Key expansion logic:</strong> A single 16-byte cipher key expands into 44 32-bit words (<code>W[0]..W[43]</code>) covering 11 round keys. Multiples of 4 apply <code>RotWord</code>, <code>SubWord</code>, and an XOR with round constant <code>Rcon</code>.",
     keyNotes: `<ul>
@@ -331,6 +361,8 @@ const I18N = {
       `<strong>Currently selected · Byte ${idx + 1} → s[${r},${c}]:</strong> By column-major indexing, <code>row = ${idx} % 4 = ${r}</code> and <code>col = ⌊${idx} / 4⌋ = ${c}</code>. Primary byte is <code>${ch1}</code> (<code>0x${hex1}</code>)${isDiff ? `; compared with <code>${ch2}</code> (<code>0x${hex2}</code>) this creates a <strong>${diffBits}-bit</strong> initial delta` : `, matching the comparison block`}.`,
     prepAvalTitle: "3. Round-by-round avalanche",
     prepAvalBadge: "Bit diffusion rate",
+    avalChartLabel: "Bit difference percentage chart from Round 0 to Round 10",
+    avalHalfLabel: "50% ideal",
     colStage: "Stage",
     colChangedBytes: "Changed bytes",
     colChangedBits: "Bit diff ratio",
@@ -456,6 +488,7 @@ const I18N = {
   }
 };
 
+// Tüm arayüz durumunu (seçili sekme, tur, adım, hücre, tema, tahta işaretleri, oynatma) tutar
 const APP = {
   lang: "tr",
   tab: "prep",
@@ -471,6 +504,7 @@ const APP = {
   notesOpen: new Set(),
   pt1Str: CONSTANTS.DEFAULTS.pt1,
   pt2Str: CONSTANTS.DEFAULTS.pt2,
+  playTimer: null,
   pt1Info: null,
   pt2Info: null,
   keyInfo: null,
@@ -499,6 +533,13 @@ const STATIC_TEXT_BINDINGS = [
   ["leg-pin", "legPin"],
   ["lbl-pt1", "lblPt1"],
   ["lbl-pt2", "lblPt2"],
+  ["lbl-preset", "lblPreset"],
+  ["opt-preset-classroom", "optPresetClassroom"],
+  ["opt-preset-fips197", "optPresetFips197"],
+  ["opt-preset-zeros", "optPresetZeros"],
+  ["opt-preset-ascii16", "optPresetAscii16"],
+  ["opt-preset-custom", "optPresetCustom"],
+  ["flip-bit-label", "flipBitLabel"],
   ["lbl-pad", "lblPad"],
   ["opt-pad-zero", "optZero"],
   ["opt-pad-pkcs7", "optPkcs7"],
@@ -509,10 +550,13 @@ const STATIC_TEXT_BINDINGS = [
   ["tab-btn-dec", "tabDec"],
   ["kh-tabs", "khTabs"],
   ["kh-step", "khStep"],
+  ["kh-substep", "khSubstep"],
   ["kh-present", "khPresent"],
   ["kh-mark", "khMark"],
   ["kh-notes", "khNotes"],
   ["kh-theme", "khTheme"],
+  ["step-prev-btn", "stepPrevLabel"],
+  ["step-next-btn", "stepNextLabel"],
   ["prep-note-meta", "prepNoteMeta"],
   ["round-note-meta", "roundNoteMeta"],
   ["insp-note-meta", "inspNoteMeta"],
@@ -703,6 +747,46 @@ function renderBanner() {
     </div>`;
 }
 
+// Tur 0..10 arası bit değişim yüzdelerini %50 referans çizgisiyle canlı SVG grafik olarak çizer
+function renderAvalancheSvg(roundDiffs) {
+  const t = getDict();
+  const w = 440;
+  const h = 152;
+  const padL = 34;
+  const padR = 14;
+  const padT = 14;
+  const padB = 24;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+  const xFor = (r) => padL + (r / CONSTANTS.ROUNDS) * plotW;
+  const yFor = (pct) => padT + plotH - (Math.min(Math.max(pct, 0), 75) / 75) * plotH;
+
+  const points = roundDiffs.map((d) => `${xFor(d.round).toFixed(1)},${yFor(parseFloat(d.pct)).toFixed(1)}`).join(" ");
+  const y50 = yFor(50).toFixed(1);
+  const y25 = yFor(25).toFixed(1);
+  const dots = roundDiffs.map((d) => {
+    const cx = xFor(d.round).toFixed(1);
+    const cy = yFor(parseFloat(d.pct)).toFixed(1);
+    const lbl = d.round === 0 ? "T0" : `T${d.round}`;
+    return `<g>
+      <circle cx="${cx}" cy="${cy}" r="3.6" fill="var(--diff-solid)" stroke="var(--panel)" stroke-width="1.5"/>
+      <text x="${cx}" y="${h - 6}" text-anchor="middle" font-size="9.5" fill="var(--text-muted)">${lbl}</text>
+    </g>`;
+  }).join("");
+
+  return `<div class="aval-svg-wrap">
+    <svg class="aval-svg" viewBox="0 0 ${w} ${h}" role="img" aria-label="${escapeHtml(t.avalChartLabel)}">
+      <line x1="${padL}" y1="${y50}" x2="${w - padR}" y2="${y50}" stroke="var(--key-hl)" stroke-width="1" stroke-dasharray="4 3"/>
+      <line x1="${padL}" y1="${y25}" x2="${w - padR}" y2="${y25}" stroke="var(--border)" stroke-width="1" stroke-dasharray="2 3"/>
+      <text x="${padL - 5}" y="${Number(y50) + 3}" text-anchor="end" font-size="9.5" fill="var(--key-hl)">50%</text>
+      <text x="${padL - 5}" y="${Number(y25) + 3}" text-anchor="end" font-size="9.5" fill="var(--text-muted)">25%</text>
+      <text x="${w - padR}" y="${Number(y50) - 4}" text-anchor="end" font-size="9.5" fill="var(--key-hl)">${escapeHtml(t.avalHalfLabel)}</text>
+      <polyline fill="none" stroke="var(--diff-solid)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" points="${points}"/>
+      ${dots}
+    </svg>
+  </div>`;
+}
+
 function renderPrepTab() {
   const t = getDict();
   const pt1Label = escapeHtml(APP.pt1Str || '""');
@@ -791,6 +875,7 @@ function renderPrepTab() {
           <h2 class="card-title-text">${t.prepAvalTitle}</h2>
           <span class="muted-note">${t.prepAvalBadge}</span>
         </div>
+        ${renderAvalancheSvg(APP.roundDiffs)}
         <div class="table-scroll">
           <table class="data-table">
             <thead><tr><th>${t.colStage}</th><th>${t.colChangedBytes}</th><th>${t.colChangedBits}</th></tr></thead>
@@ -1210,6 +1295,95 @@ function toggleActiveTabNotes() {
   syncPresenterNotes();
 }
 
+function syncPlayButton() {
+  const btn = byId("play-btn");
+  if (!btn) return;
+  const t = getDict();
+  const running = Boolean(APP.playTimer);
+  btn.setAttribute("aria-pressed", String(running));
+  btn.textContent = running ? t.playPauseLabel : t.playStartLabel;
+}
+
+function stopAutoPlay() {
+  if (APP.playTimer) {
+    clearInterval(APP.playTimer);
+    APP.playTimer = null;
+    syncPlayButton();
+  }
+}
+
+// Şifreleme / Deşifreleme adımları arasında (SubBytes -> ShiftRows -> MixColumns -> AddRoundKey) tek adım ilerler veya geri döner
+function stepRoundPipeline(delta) {
+  if (APP.tab !== "enc" && APP.tab !== "dec") return false;
+  const isEnc = APP.tab === "enc";
+  const steps = getRoundSteps(APP.roundIdx, isEnc);
+  const pos = Math.max(0, steps.indexOf(APP.stepKey));
+  const nextPos = pos + delta;
+  // Aynı tur içinde bir sonraki/önceki adım varsa oraya geç
+  if (nextPos >= 0 && nextPos < steps.length) {
+    APP.stepKey = steps[nextPos];
+    renderRoundsTab();
+    return true;
+  }
+  // Tur sınırına ulaşıldıysa bir sonraki/önceki turun ilk/son adımına geç
+  const nextRound = APP.roundIdx + (delta > 0 ? 1 : -1);
+  if (nextRound >= 0 && nextRound <= CONSTANTS.ROUNDS) {
+    APP.roundIdx = nextRound;
+    const nextSteps = getRoundSteps(APP.roundIdx, isEnc);
+    APP.stepKey = delta > 0 ? nextSteps[0] : nextSteps[nextSteps.length - 1];
+    renderRoundButtons();
+    renderRoundsTab();
+    return true;
+  }
+  return false;
+}
+
+// 1.1 saniyelik aralıklarla adımları otomatik ilerleten oynatıcıyı açar/kapatır
+function toggleAutoPlay() {
+  if (APP.playTimer) {
+    stopAutoPlay();
+    return;
+  }
+  if (APP.tab !== "enc" && APP.tab !== "dec") return;
+  APP.playTimer = setInterval(() => {
+    if (!stepRoundPipeline(1)) stopAutoPlay();
+  }, 1100);
+  syncPlayButton();
+}
+
+// Girdi alanlarının mevcut değerine göre hazır vektör seçicisini eşleştirir ("custom" veya hazır önayar)
+function syncPresetDropdown() {
+  const sel = byId("preset-select");
+  if (!sel) return;
+  const pt1 = byId("pt1-input").value;
+  const pt2 = byId("pt2-input").value;
+  const key = byId("key-input").value.toUpperCase();
+  const pad = byId("pad-select").value;
+  const match = Object.entries(CONSTANTS.PRESETS).find(([, v]) =>
+    v.pt1 === pt1 && v.pt2 === pt2 && v.key === key && v.pad === pad
+  );
+  sel.value = match ? match[0] : "custom";
+}
+
+function applyPreset(presetId) {
+  const preset = CONSTANTS.PRESETS[presetId];
+  if (!preset) return;
+  byId("pt1-input").value = preset.pt1;
+  byId("pt2-input").value = preset.pt2;
+  byId("key-input").value = preset.key;
+  byId("pad-select").value = preset.pad;
+  updateAll(true);
+}
+
+// PT1 girdisinden yalnızca 1 bit farklı karşılaştırma metni üretir (önce 0. bayt, zaten 1 bit farklıysa 15. bayt)
+function flipOneBitOnPt2() {
+  const pt1Val = byId("pt1-input").value;
+  const padVal = byId("pad-select").value;
+  const byteIdx = APP.inDiff && APP.inDiff.bits === 1 && countBitDiff(APP.pt1, analyzeBlockInput(flipSingleBitHex(pt1Val, padVal, 0), padVal).bytes).bits === 1 && APP.pt2Str === flipSingleBitHex(pt1Val, padVal, 0) ? 15 : 0;
+  byId("pt2-input").value = flipSingleBitHex(pt1Val, padVal, byteIdx, 0x01);
+  updateAll(true);
+}
+
 function renderCurrentTab() {
   byId("tab-prep").classList.toggle("active", APP.tab === "prep");
   byId("tab-rounds").classList.toggle("active", APP.tab === "enc" || APP.tab === "dec");
@@ -1219,6 +1393,7 @@ function renderCurrentTab() {
   else if (APP.tab === "key") renderKeyTab();
   else renderRoundsTab();
 
+  syncPlayButton();
   syncPresenterNotes();
 }
 
@@ -1238,6 +1413,7 @@ function activateTabFromNav(tabName) {
 }
 
 function switchTab(tabName) {
+  stopAutoPlay();
   APP.tab = WORKBENCH_TABS.includes(tabName) ? tabName : "prep";
   document.querySelectorAll(".tab-btn").forEach((b) => {
     const isAct = b.dataset.tab === APP.tab;
@@ -1304,10 +1480,13 @@ function applyLanguage(lang, rerender = true) {
   document.querySelectorAll(".note-title").forEach((el) => { el.textContent = t.noteTitle; });
   const markerBtn = byId("marker-btn");
   if (markerBtn) markerBtn.title = t.markerTitle;
+  const flipBtn = byId("flip-bit-btn");
+  if (flipBtn) flipBtn.title = t.flipBitTitle;
   const nav = byId("main-nav");
   if (nav) nav.setAttribute("aria-label", t.navAria);
   const sboxTitle = byId("sbox-title");
   if (sboxTitle) sboxTitle.textContent = APP.tab === "dec" ? t.invSboxTitle : t.sboxTitle;
+  syncPlayButton();
 
   const curTheme = document.documentElement.getAttribute("data-theme") || "dark";
   const themeLbl = byId("theme-btn-label");
@@ -1355,8 +1534,31 @@ function bindEvents() {
     });
   });
 
-  ["pt1-input", "pt2-input", "key-input"].forEach((id) => byId(id).addEventListener("input", () => updateAll(true)));
-  byId("pad-select").addEventListener("change", () => updateAll(true));
+  ["pt1-input", "pt2-input", "key-input"].forEach((id) => byId(id).addEventListener("input", () => {
+    syncPresetDropdown();
+    updateAll(true);
+  }));
+  byId("pad-select").addEventListener("change", () => {
+    syncPresetDropdown();
+    updateAll(true);
+  });
+  const presetSel = byId("preset-select");
+  if (presetSel) {
+    presetSel.addEventListener("change", () => applyPreset(presetSel.value));
+  }
+  const flipBitBtn = byId("flip-bit-btn");
+  if (flipBitBtn) {
+    flipBitBtn.addEventListener("click", () => {
+      flipOneBitOnPt2();
+      syncPresetDropdown();
+    });
+  }
+  const stepPrevBtn = byId("step-prev-btn");
+  if (stepPrevBtn) stepPrevBtn.addEventListener("click", () => { stopAutoPlay(); stepRoundPipeline(-1); });
+  const stepNextBtn = byId("step-next-btn");
+  if (stepNextBtn) stepNextBtn.addEventListener("click", () => { stopAutoPlay(); stepRoundPipeline(1); });
+  const playBtn = byId("play-btn");
+  if (playBtn) playBtn.addEventListener("click", toggleAutoPlay);
   byId("show-diff-chk").addEventListener("change", (e) => {
     APP.showDiff = e.target.checked;
     renderRoundsTab();
@@ -1414,6 +1616,7 @@ function bindEvents() {
     }
   });
 
+  // Klavye kısayolları: 1-4 sekmeler, ←/→ tur veya kelime, ↑/↓ tur içi adım, T tema, P sunum, H işaretçi, N notlar
   document.addEventListener("keydown", (e) => {
     const tag = e.target && e.target.tagName;
     if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
@@ -1430,7 +1633,14 @@ function bindEvents() {
     else if (low === "p") applyPresentMode(!APP.presentMode);
     else if (low === "h") applyMarkerMode(!APP.markerMode);
     else if (low === "n") toggleActiveTabNotes();
-    else if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+    else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      if (APP.tab === "enc" || APP.tab === "dec") {
+        e.preventDefault();
+        stopAutoPlay();
+        stepRoundPipeline(e.key === "ArrowDown" ? 1 : -1);
+      }
+    } else if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+      stopAutoPlay();
       const delta = e.key === "ArrowRight" ? 1 : -1;
       if (APP.tab === "enc" || APP.tab === "dec") {
         const nextRound = APP.roundIdx + delta;
@@ -1473,6 +1683,7 @@ if (typeof document !== "undefined") {
     applyMarkerMode(false);
     syncPinCounter();
     bindEvents();
+    syncPresetDropdown();
     updateAll(false);
     updateFieldHints();
     const toggleText = byId("diff-toggle-text");
